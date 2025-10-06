@@ -63,10 +63,10 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Failed to create user');
 
-      // Update the profile role
+      // Update the profile role and email
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ role: data.role, name: data.name })
+        .update({ role: data.role, name: data.name, email: data.email })
         .eq('id', authData.user.id);
 
       if (profileError) throw profileError;

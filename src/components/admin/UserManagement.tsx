@@ -36,23 +36,12 @@ export function UserManagement() {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, name, role, is_active, created_at')
+        .select('id, name, email, role, is_active, created_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get emails from auth.users metadata
-      const usersWithEmails = await Promise.all(
-        (profiles || []).map(async (profile) => {
-          const { data: authData } = await supabase.auth.admin.getUserById(profile.id);
-          return {
-            ...profile,
-            email: authData.user?.email || 'N/A',
-          };
-        })
-      );
-
-      return usersWithEmails as User[];
+      return profiles as User[];
     },
   });
 

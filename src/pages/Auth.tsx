@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import wingrowLogo from '@/assets/wingrow-market-logo.png';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -63,17 +64,22 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Wingrow Inventory
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Empowering Smarter Market Operations
-          </p>
-        </div>
-
         <Card className="w-full shadow-lg border-0">
           <CardContent className="pt-8 pb-6 px-6">
+            <div className="text-center mb-8">
+              <img 
+                src={wingrowLogo} 
+                alt="Wingrow Market" 
+                className="h-20 w-auto mx-auto mb-4 object-contain"
+                style={{ mixBlendMode: 'multiply' }}
+              />
+              <h1 className="text-4xl font-bold text-foreground mb-2">
+                Wingrow Inventory
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Empowering Smarter Market Operations
+              </p>
+            </div>
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
                 <div className="relative">

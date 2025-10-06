@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { AuditLogs } from '@/components/admin/AuditLogs';
+import { ItemRequestsManagement } from '@/components/admin/ItemRequestsManagement';
 
 export default function Admin() {
   return (
@@ -17,12 +18,17 @@ export default function Admin() {
       <Tabs defaultValue="users" className="w-full">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="requests">Item Requests</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="audit">Audit Logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="mt-6">
           <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-6">
+          <ItemRequestsManagement />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

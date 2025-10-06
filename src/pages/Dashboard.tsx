@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Receipt, Package, TrendingUp, Plus } from 'lucide-react';
+import { FileText, Receipt, Package, TrendingUp, Plus, UserPlus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -177,10 +177,10 @@ export default function Dashboard() {
                 <Button
                   className="w-full justify-start"
                   variant="outline"
-                  onClick={() => navigate('/requests/new')}
+                  onClick={() => navigate('/admin')}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Item Request
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add Employee
                 </Button>
                 <Button
                   className="w-full justify-start"

@@ -14,6 +14,7 @@ import Inventory from "./pages/Inventory";
 import Vendors from "./pages/Vendors";
 import Reports from "./pages/Reports";
 import Admin from "./pages/Admin";
+import Employees from "./pages/Employees";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -74,6 +75,14 @@ const App = () => (
               <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
                 <AppLayout>
                   <Reports />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/employees" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AppLayout>
+                  <Employees />
                 </AppLayout>
               </ProtectedRoute>
             } />

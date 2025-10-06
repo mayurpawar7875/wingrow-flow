@@ -10,6 +10,7 @@ import {
   User,
   LogOut,
   Menu,
+  Users,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const mainNavItems = [
 ];
 
 const adminNavItems = [
+  { title: 'Onboarded Employees', url: '/employees', icon: Users, roles: ['ADMIN'] },
   { title: 'Admin', url: '/admin', icon: Settings, roles: ['ADMIN'] },
 ];
 

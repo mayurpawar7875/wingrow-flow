@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import wingrowLogo from '@/assets/wingrow-market-logo.png';
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(6, 'Password must be at least 6 characters')
 });
 
@@ -41,19 +41,23 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
+    const username = formData.get('username') as string;
     const password = formData.get('password') as string;
     try {
       loginSchema.parse({
-        email,
+        username,
         password
       });
+      
+      // Convert username to internal email format
+      const email = `${username}@wingrow.internal`;
+      
       const {
         error
       } = await signIn(email, password);
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password');
+          toast.error('Invalid username or password');
         } else {
           toast.error(error.message);
         }
@@ -125,7 +129,7 @@ export default function Auth() {
                 <div className="space-y-2">
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="login-username" name="email" type="email" placeholder="Username" className="pl-10 h-12 border-border" required autoComplete="username" />
+                    <Input id="login-username" name="username" type="text" placeholder="Username" className="pl-10 h-12 border-border" required autoComplete="username" />
                   </div>
                 </div>
 

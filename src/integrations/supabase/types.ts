@@ -56,9 +56,13 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_archived: boolean
+          item_version: number
           location: string | null
           max_level: number
           name: string
+          notes: string | null
+          price_per_item: number | null
           quantity_on_hand: number
           reorder_level: number
           sku: string
@@ -71,9 +75,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_archived?: boolean
+          item_version?: number
           location?: string | null
           max_level?: number
           name: string
+          notes?: string | null
+          price_per_item?: number | null
           quantity_on_hand?: number
           reorder_level?: number
           sku: string
@@ -86,9 +94,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_archived?: boolean
+          item_version?: number
           location?: string | null
           max_level?: number
           name?: string
+          notes?: string | null
+          price_per_item?: number | null
           quantity_on_hand?: number
           reorder_level?: number
           sku?: string
@@ -103,8 +115,11 @@ export type Database = {
           created_at: string
           id: string
           item_id: string
+          new_quantity: number | null
           performed_by: string
+          prev_quantity: number | null
           quantity: number
+          reason: string | null
           reference: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
@@ -112,8 +127,11 @@ export type Database = {
           created_at?: string
           id?: string
           item_id: string
+          new_quantity?: number | null
           performed_by: string
+          prev_quantity?: number | null
           quantity: number
+          reason?: string | null
           reference?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
         }
@@ -121,8 +139,11 @@ export type Database = {
           created_at?: string
           id?: string
           item_id?: string
+          new_quantity?: number | null
           performed_by?: string
+          prev_quantity?: number | null
           quantity?: number
+          reason?: string | null
           reference?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
         }
@@ -190,30 +211,42 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          designation: string | null
           email: string | null
           id: string
           is_active: boolean
+          location: string | null
           name: string
+          phone_number: string | null
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
+          designation?: string | null
           email?: string | null
           id: string
           is_active?: boolean
+          location?: string | null
           name: string
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
+          designation?: string | null
           email?: string | null
           id?: string
           is_active?: boolean
+          location?: string | null
           name?: string
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -367,6 +400,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      update_stock_with_version: {
+        Args: {
+          _current_version: number
+          _item_id: string
+          _movement_type: string
+          _performed_by: string
+          _quantity_delta: number
+          _reason: string
+          _reference_id?: string
+        }
+        Returns: Json
       }
     }
     Enums: {

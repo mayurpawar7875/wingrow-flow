@@ -28,17 +28,40 @@ serve(async (req) => {
 
     const email = `${username}@wingrow.internal`;
 
-    // 1) Create auth user (returns user id without affecting client session)
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { name, username, phone_number, designation, location }
-    });
-    if (createErr || !created.user) {
-      return new Response(JSON.stringify({ success: false, message: createErr?.message || 'Failed to create auth user' }), { status: 400 });
+    // 1) Ensure an auth user exists or update existing user's password
+    let userId: string | null = null;
+
+    // Try to find existing user via profiles (profiles.id = auth user id)
+    const { data: existingProfile } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingProfile?.id) {
+      userId = existingProfile.id;
+      // Update password and metadata for existing user
+      const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
+        password,
+        email_confirm: true,
+        user_metadata: { name, username, phone_number, designation, location }
+      });
+      if (updateErr) {
+        return new Response(JSON.stringify({ success: false, message: updateErr.message }), { status: 400 });
+      }
+    } else {
+      // Create auth user (returns user id without affecting client session)
+      const { data: created, error: createErr } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { name, username, phone_number, designation, location }
+      });
+      if (createErr || !created.user) {
+        return new Response(JSON.stringify({ success: false, message: createErr?.message || 'Failed to create auth user' }), { status: 400 });
+      }
+      userId = created.user.id;
     }
-    const userId = created.user.id;
 
     // 2) Ensure profile has all fields and set role
     const { error: profileErr } = await admin.from('profiles').update({

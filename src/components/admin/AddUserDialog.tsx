@@ -59,7 +59,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
         .from('profiles')
         .select('username')
         .eq('username', data.username)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         throw new Error('Username already exists');
@@ -70,65 +70,29 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
         .from('profiles')
         .select('phone_number')
         .eq('phone_number', data.phone_number)
-        .single();
+        .maybeSingle();
 
       if (existingPhone) {
         throw new Error('Phone number already exists');
       }
 
-      // Generate internal email from username
-      const internalEmail = `${data.username}@wingrow.internal`;
-
-      // Create user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: internalEmail,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            username: data.username,
-            phone_number: data.phone_number,
-            designation: data.designation,
-            location: data.location,
-          },
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create user');
-
-      // Update the profile with role and other details
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: data.role, 
-          name: data.name, 
-          email: internalEmail,
+      // Create employee via Edge Function (uses service role; does not switch session)
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('create-employee', {
+        body: {
+          name: data.name,
           username: data.username,
           phone_number: data.phone_number,
           designation: data.designation,
-          location: data.location
-        })
-        .eq('id', authData.user.id);
+          location: data.location,
+          password: data.password,
+          role: data.role,
+        },
+      });
 
-      if (profileError) throw profileError;
+      if (fnError) throw fnError;
+      if (!fnData?.success) throw new Error(fnData?.message || 'Failed to create employee');
 
-      // Update user_roles
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', authData.user.id);
-
-      if (roleError) throw roleError;
-
-      const { error: insertRoleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: authData.user.id, role: data.role });
-
-      if (insertRoleError) throw insertRoleError;
-
-      return authData.user;
+      return { id: fnData.userId } as any;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });

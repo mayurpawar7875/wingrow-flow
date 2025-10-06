@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Receipt, Package, TrendingUp, Plus, UserPlus } from 'lucide-react';
+import { FileText, Receipt, Package, TrendingUp, Plus, UserPlus, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 export default function Dashboard() {
@@ -85,6 +85,75 @@ export default function Dashboard() {
       return lowStock?.length || 0;
     }
   });
+
+  const { data: approvedClaimsCount } = useQuery({
+    queryKey: ['approved-claims-count', user?.id],
+    queryFn: async () => {
+      const query = supabase
+        .from('reimbursements')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Approved');
+      
+      if (userRole === 'EMPLOYEE') {
+        query.eq('user_id', user?.id);
+      }
+      
+      const { count } = await query;
+      return count || 0;
+    },
+  });
+
+  const { data: rejectedClaimsCount } = useQuery({
+    queryKey: ['rejected-claims-count', user?.id],
+    queryFn: async () => {
+      const query = supabase
+        .from('reimbursements')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Rejected');
+      
+      if (userRole === 'EMPLOYEE') {
+        query.eq('user_id', user?.id);
+      }
+      
+      const { count } = await query;
+      return count || 0;
+    },
+  });
+
+  const { data: approvedItemsCount } = useQuery({
+    queryKey: ['approved-items-count', user?.id],
+    queryFn: async () => {
+      const query = supabase
+        .from('item_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Approved');
+      
+      if (userRole === 'EMPLOYEE') {
+        query.eq('user_id', user?.id);
+      }
+      
+      const { count } = await query;
+      return count || 0;
+    },
+  });
+
+  const { data: paidClaimsCount } = useQuery({
+    queryKey: ['paid-claims-count', user?.id],
+    queryFn: async () => {
+      const query = supabase
+        .from('reimbursements')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Paid');
+      
+      if (userRole === 'EMPLOYEE') {
+        query.eq('user_id', user?.id);
+      }
+      
+      const { count } = await query;
+      return count || 0;
+    },
+  });
+
   return <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -139,6 +208,58 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
             <p className="text-xs text-muted-foreground">Items below reorder level</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved Claims</CardTitle>
+            <CheckCircle className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{approvedClaimsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {userRole === 'EMPLOYEE' ? 'Your approved claims' : 'Total approved'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rejected Claims</CardTitle>
+            <XCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{rejectedClaimsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {userRole === 'EMPLOYEE' ? 'Your rejected claims' : 'Total rejected'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Approved Items</CardTitle>
+            <CheckCircle className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{approvedItemsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {userRole === 'EMPLOYEE' ? 'Your approved requests' : 'Total approved'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Payment Received</CardTitle>
+            <DollarSign className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{paidClaimsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              {userRole === 'EMPLOYEE' ? 'Your paid claims' : 'Total paid'}
+            </p>
           </CardContent>
         </Card>
       </div>

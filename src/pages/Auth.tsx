@@ -30,8 +30,11 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    const username = formData.get('username') as string;
-    const password = formData.get('password') as string;
+    const usernameRaw = formData.get('username') as string;
+    const passwordRaw = formData.get('password') as string;
+
+    const username = (usernameRaw ?? '').trim().toLowerCase();
+    const password = (passwordRaw ?? '').trim();
 
     try {
       loginSchema.parse({ username, password });

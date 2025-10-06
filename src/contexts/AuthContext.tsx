@@ -72,15 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (username: string, password: string) => {
     try {
+      const uname = (username ?? '').trim().toLowerCase();
+
       // 1) Look up profile by username to get email + role
       let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email, role, is_active')
-        .eq('username', username)
+        .eq('username', uname)
         .maybeSingle();
 
       // 2) If admin username not found, bootstrap via edge function (one-time)
-      if (!profile && username === 'wingrowagritech') {
+      if (!profile && uname === 'wingrowagritech') {
         const { error: fnError } = await supabase.functions.invoke('create-employee', {
           body: {
             name: 'Wingrow Admin',
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ({ data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('email, role, is_active')
-          .eq('username', username)
+          .eq('username', uname)
           .maybeSingle());
       }
 
@@ -111,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: 'Your account has been deactivated. Please contact admin.' } };
       }
 
-      // 3) Sign in with the associated email
+      // 3) Sign in with the associated email (internal only)
       const { error } = await supabase.auth.signInWithPassword({
         email: profile.email,
         password,

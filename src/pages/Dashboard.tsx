@@ -5,74 +5,87 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Receipt, Package, TrendingUp, Plus, UserPlus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
 export default function Dashboard() {
-  const { user, userRole } = useAuth();
+  const {
+    user,
+    userRole
+  } = useAuth();
   const navigate = useNavigate();
-
-  const { data: requestsCount } = useQuery({
+  const {
+    data: requestsCount
+  } = useQuery({
     queryKey: ['requests-count', user?.id],
     queryFn: async () => {
       if (userRole === 'EMPLOYEE') {
-        const { count } = await supabase
-          .from('item_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user?.id);
+        const {
+          count
+        } = await supabase.from('item_requests').select('*', {
+          count: 'exact',
+          head: true
+        }).eq('user_id', user?.id);
         return count || 0;
       } else {
-        const { count } = await supabase
-          .from('item_requests')
-          .select('*', { count: 'exact', head: true });
+        const {
+          count
+        } = await supabase.from('item_requests').select('*', {
+          count: 'exact',
+          head: true
+        });
         return count || 0;
       }
-    },
+    }
   });
-
-  const { data: reimbursementsCount } = useQuery({
+  const {
+    data: reimbursementsCount
+  } = useQuery({
     queryKey: ['reimbursements-count', user?.id],
     queryFn: async () => {
       if (userRole === 'EMPLOYEE') {
-        const { count } = await supabase
-          .from('reimbursements')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user?.id);
+        const {
+          count
+        } = await supabase.from('reimbursements').select('*', {
+          count: 'exact',
+          head: true
+        }).eq('user_id', user?.id);
         return count || 0;
       } else {
-        const { count } = await supabase
-          .from('reimbursements')
-          .select('*', { count: 'exact', head: true });
+        const {
+          count
+        } = await supabase.from('reimbursements').select('*', {
+          count: 'exact',
+          head: true
+        });
         return count || 0;
       }
-    },
+    }
   });
-
-  const { data: inventoryCount } = useQuery({
+  const {
+    data: inventoryCount
+  } = useQuery({
     queryKey: ['inventory-count'],
     queryFn: async () => {
-      const { count } = await supabase
-        .from('inventory_items')
-        .select('*', { count: 'exact', head: true });
+      const {
+        count
+      } = await supabase.from('inventory_items').select('*', {
+        count: 'exact',
+        head: true
+      });
       return count || 0;
-    },
+    }
   });
-
-  const { data: lowStockCount } = useQuery({
+  const {
+    data: lowStockCount
+  } = useQuery({
     queryKey: ['low-stock-count'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('inventory_items')
-        .select('quantity_on_hand, reorder_level');
-      
-      const lowStock = data?.filter(
-        item => item.quantity_on_hand <= item.reorder_level
-      );
-      
+      const {
+        data
+      } = await supabase.from('inventory_items').select('quantity_on_hand, reorder_level');
+      const lowStock = data?.filter(item => item.quantity_on_hand <= item.reorder_level);
       return lowStock?.length || 0;
-    },
+    }
   });
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
@@ -137,71 +150,34 @@ export default function Dashboard() {
             <CardDescription>Common tasks you can perform</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {userRole === 'ADMIN' ? (
-              <>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => navigate('/admin')}
-                >
+            {userRole === 'ADMIN' ? <>
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/admin')}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Employee
                 </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => navigate('/reimbursements')}
-                >
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/reimbursements')}>
                   <Receipt className="mr-2 h-4 w-4" />
                   Approve Claims
                 </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => navigate('/requests')}
-                >
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/requests')}>
                   <FileText className="mr-2 h-4 w-4" />
                   Approve Item Requests
                 </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => navigate('/inventory')}
-                >
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/inventory')}>
                   <Package className="mr-2 h-4 w-4" />
                   Update Inventory
                 </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => navigate('/admin')}
-                >
+              </> : <>
+                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/admin')}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add Employee
                 </Button>
-                <Button
-                  className="w-full justify-start"
-                  variant="outline"
-                  onClick={() => navigate('/reimbursements/new')}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Submit Reimbursement
-                </Button>
-                {userRole === 'MANAGER' && (
-                  <Button
-                    className="w-full justify-start"
-                    variant="outline"
-                    onClick={() => navigate('/inventory/new')}
-                  >
+                
+                {userRole === 'MANAGER' && <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/inventory/new')}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Inventory Item
-                  </Button>
-                )}
-              </>
-            )}
+                  </Button>}
+              </>}
           </CardContent>
         </Card>
 
@@ -217,6 +193,5 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }

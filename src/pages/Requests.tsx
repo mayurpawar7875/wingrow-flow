@@ -16,6 +16,9 @@ export default function Requests() {
   const { data: requests, isLoading } = useQuery({
     queryKey: ['item-requests', user?.id, userRole],
     queryFn: async () => {
+      console.log('User role in Requests:', userRole);
+      console.log('User ID:', user?.id);
+      
       let query = supabase
         .from('item_requests')
         .select('*')
@@ -23,7 +26,10 @@ export default function Requests() {
 
       // If employee, show only their requests
       if (userRole === 'EMPLOYEE') {
+        console.log('Filtering by user_id for EMPLOYEE');
         query = query.eq('user_id', user?.id);
+      } else {
+        console.log('Showing all requests for ADMIN/MANAGER');
       }
 
       const { data: requestsData, error: requestsError } = await query;

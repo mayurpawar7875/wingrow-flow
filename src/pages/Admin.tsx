@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { SystemSettings } from '@/components/admin/SystemSettings';
+import { AuditLogs } from '@/components/admin/AuditLogs';
 
 export default function Admin() {
   return (
@@ -18,27 +22,15 @@ export default function Admin() {
         </TabsList>
 
         <TabsContent value="users" className="mt-6">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <p className="text-muted-foreground">
-              User management will be displayed here
-            </p>
-          </div>
+          <UserManagement />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <p className="text-muted-foreground">
-              System settings will be displayed here
-            </p>
-          </div>
+          <SystemSettings />
         </TabsContent>
 
         <TabsContent value="audit" className="mt-6">
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <p className="text-muted-foreground">
-              Audit logs will be displayed here
-            </p>
-          </div>
+          <AuditLogs />
         </TabsContent>
       </Tabs>
     </div>

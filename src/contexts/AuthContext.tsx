@@ -72,18 +72,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    
-    if (!error) {
+
+    if (error) {
+      return { error };
+    }
+
+    // Determine post-login destination
+    try {
+      const userId = data.session?.user.id;
+      const userEmail = data.session?.user.email;
+
+      if (userId) {
+        // One-time promotion for the specified account
+        if (userEmail === 'wingrowagritech@gmail.com') {
+          const { data: currentRole } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (currentRole?.role !== 'ADMIN') {
+            await supabase.from('profiles').update({ role: 'ADMIN' }).eq('id', userId);
+          }
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profile?.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (e) {
+      console.error('Post-login role check failed:', e);
       navigate('/dashboard');
     }
-    
-    return { error };
-  };
 
+    return { error: null };
+  };
   const signUp = async (email: string, password: string, name: string) => {
     const redirectUrl = `${window.location.origin}/dashboard`;
     

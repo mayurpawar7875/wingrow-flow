@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import wingrowLogo from '@/assets/wingrow-logo.png';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -60,29 +60,33 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Package className="h-10 w-10 text-primary" />
-          <h1 className="text-3xl font-bold">Wingrow Inventory</h1>
+      <div className="w-full max-w-md mx-auto">
+        <div className="flex flex-col items-center justify-center mb-8 space-y-4">
+          <img 
+            src={wingrowLogo} 
+            alt="Wingrow Market" 
+            className="h-32 w-32 sm:h-40 sm:w-40 object-contain"
+          />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Admin Login</CardTitle>
-            <CardDescription>
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Login</CardTitle>
+            <CardDescription className="text-center">
               Enter your credentials to access the system
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-username">Username</Label>
                 <Input
-                  id="login-email"
+                  id="login-username"
                   name="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder="Enter your username"
                   required
+                  autoComplete="username"
                 />
               </div>
               <div className="space-y-2">

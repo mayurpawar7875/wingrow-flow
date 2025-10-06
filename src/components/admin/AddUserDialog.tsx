@@ -286,7 +286,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={createUserMutation.isPending}>
-              {createUserMutation.isPending ? 'Adding...' : 'Add Employee'}
+              {createUserMutation.isPending ? 'Saving...' : 'Save Employee'}
             </Button>
           </DialogFooter>
         </form>

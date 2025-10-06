@@ -66,7 +66,11 @@ export default function Auth() {
         <Card className="w-full shadow-lg border-0">
           <CardContent className="pt-8 pb-6 px-6">
             <div className="text-center mb-8">
-              
+              <img 
+                src={wingrowLogo} 
+                alt="Wingrow Market" 
+                className="h-24 w-auto mx-auto mb-4"
+              />
               <h1 className="text-4xl font-bold text-foreground mb-2">
                 Wingrow Inventory
               </h1>

@@ -8,8 +8,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signIn: (username: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -71,71 +70,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      return { error };
-    }
-
-    // Determine post-login destination
+  const signIn = async (username: string, password: string) => {
     try {
-      const userId = data.session?.user.id;
-      const userEmail = data.session?.user.email;
+      // Look up user by username to get their email
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email, role, is_active')
+        .eq('username', username)
+        .maybeSingle();
 
-      if (userId) {
-        // One-time promotion for the specified account
-        if (userEmail === 'wingrowagritech@gmail.com') {
-          const { data: currentRole } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', userId)
-            .maybeSingle();
+      if (profileError || !profile) {
+        return { error: { message: 'Invalid username or password' } };
+      }
 
-          if (currentRole?.role !== 'ADMIN') {
-            await supabase.from('profiles').update({ role: 'ADMIN' }).eq('id', userId);
-          }
-        }
+      if (!profile.is_active) {
+        return { error: { message: 'Your account has been deactivated. Please contact admin.' } };
+      }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', userId)
-          .maybeSingle();
+      // Sign in with the email associated with this username
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password,
+      });
 
-        if (profile?.role === 'ADMIN') {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
+      if (error) {
+        return { error: { message: 'Invalid username or password' } };
+      }
+
+      // Navigate based on role
+      if (profile.role === 'ADMIN') {
+        navigate('/admin');
       } else {
         navigate('/dashboard');
       }
-    } catch (e) {
-      console.error('Post-login role check failed:', e);
-      navigate('/dashboard');
-    }
 
-    return { error: null };
-  };
-  const signUp = async (email: string, password: string, name: string) => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          name,
-        },
-      },
-    });
-    
-    return { error };
+      return { error: null };
+    } catch (e) {
+      console.error('Login error:', e);
+      return { error: { message: 'An error occurred during login' } };
+    }
   };
 
   const signOut = async () => {
@@ -151,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         userRole,
         loading,
         signIn,
-        signUp,
         signOut,
       }}
     >

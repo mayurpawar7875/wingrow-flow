@@ -4,32 +4,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import wingrowLogo from '@/assets/wingrow-market-logo.png';
-const loginSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
-});
 
-const signupSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
+const loginSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required')
 });
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const {
-    signIn,
-    signUp,
-    user
-  } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
@@ -43,24 +31,14 @@ export default function Auth() {
     const formData = new FormData(e.currentTarget);
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
+
     try {
-      loginSchema.parse({
-        username,
-        password
-      });
+      loginSchema.parse({ username, password });
       
-      // Convert username to internal email format
-      const email = `${username}@wingrow.internal`;
+      const { error } = await signIn(username, password);
       
-      const {
-        error
-      } = await signIn(email, password);
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid username or password');
-        } else {
-          toast.error(error.message);
-        }
+        toast.error('Invalid username or password');
       } else {
         toast.success('Logged in successfully');
       }
@@ -68,40 +46,7 @@ export default function Auth() {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
       } else {
-        toast.error('An error occurred');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    try {
-      signupSchema.parse({
-        name,
-        email,
-        password
-      });
-      const {
-        error
-      } = await signUp(email, password, name);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Account created successfully! Please login.');
-        setIsSignUp(false);
-      }
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-      } else {
-        toast.error('An error occurred');
+        toast.error('An error occurred during login');
       }
     } finally {
       setIsLoading(false);
@@ -124,90 +69,57 @@ export default function Auth() {
                 Empowering Smarter Market Operations
               </p>
             </div>
-            {!isSignUp ? (
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="login-username" name="username" type="text" placeholder="Username" className="pl-10 h-12 border-border" required autoComplete="username" />
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="login-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Password" className="pl-10 pr-10 h-12 border-border" required />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    id="login-username" 
+                    name="username" 
+                    type="text" 
+                    placeholder="Username" 
+                    className="pl-10 h-12 border-border" 
+                    required 
+                    autoComplete="username" 
+                  />
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="remember" checked={rememberMe} onCheckedChange={checked => setRememberMe(checked as boolean)} />
-                    <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer select-none">
-                      Remember me
-                    </label>
-                  </div>
-                  <button type="button" className="text-sm text-primary hover:underline" onClick={() => toast.info('Please contact support to reset your password')}>
-                    Forgot Password?
+              <div className="space-y-2">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    id="login-password" 
+                    name="password" 
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="Password" 
+                    className="pl-10 pr-10 h-12 border-border" 
+                    required 
+                    autoComplete="current-password"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+              </div>
 
-                <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base" disabled={isLoading}>
-                  {isLoading ? 'Logging in...' : 'Login'}
-                </Button>
+              <Button 
+                type="submit" 
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base" 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Button>
 
-                <div className="mt-4 text-center">
-                  <button type="button" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsSignUp(true)}>
-                    Don't have an account? <span className="text-primary">Sign up</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleSignUp} className="space-y-5">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="signup-name" name="name" type="text" placeholder="Full Name" className="pl-10 h-12 border-border" required />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="signup-email" name="email" type="email" placeholder="Email" className="pl-10 h-12 border-border" required autoComplete="username" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input id="signup-password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Password" className="pl-10 pr-10 h-12 border-border" required />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-base" disabled={isLoading}>
-                  {isLoading ? 'Creating Account...' : 'Sign Up'}
-                </Button>
-
-                <div className="mt-4 text-center">
-                  <button type="button" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setIsSignUp(false)}>
-                    Already have an account? <span className="text-primary">Login</span>
-                  </button>
-                </div>
-              </form>
-            )}
-
-            <div className="mt-6 text-center">
-              <button type="button" className="text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => toast.info('Contact support at: wingrowagritech@gmail.com')}>
-                Contact Support
-              </button>
-            </div>
+              <div className="text-center text-xs text-muted-foreground mt-4">
+                Only registered employees and admin can log in.
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>

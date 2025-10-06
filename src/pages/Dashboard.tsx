@@ -137,31 +137,70 @@ export default function Dashboard() {
             <CardDescription>Common tasks you can perform</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button
-              className="w-full justify-start"
-              variant="outline"
-              onClick={() => navigate('/requests/new')}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Item Request
-            </Button>
-            <Button
-              className="w-full justify-start"
-              variant="outline"
-              onClick={() => navigate('/reimbursements/new')}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Submit Reimbursement
-            </Button>
-            {(userRole === 'MANAGER' || userRole === 'ADMIN') && (
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => navigate('/inventory/new')}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Inventory Item
-              </Button>
+            {userRole === 'ADMIN' ? (
+              <>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => navigate('/admin')}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Employee
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => navigate('/reimbursements')}
+                >
+                  <Receipt className="mr-2 h-4 w-4" />
+                  Approve Claims
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => navigate('/requests')}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Approve Item Requests
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => navigate('/inventory')}
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Update Inventory
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => navigate('/requests/new')}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Item Request
+                </Button>
+                <Button
+                  className="w-full justify-start"
+                  variant="outline"
+                  onClick={() => navigate('/reimbursements/new')}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Submit Reimbursement
+                </Button>
+                {userRole === 'MANAGER' && (
+                  <Button
+                    className="w-full justify-start"
+                    variant="outline"
+                    onClick={() => navigate('/inventory/new')}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Inventory Item
+                  </Button>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

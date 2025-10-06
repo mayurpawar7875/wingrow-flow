@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, Receipt, Package, TrendingUp, Plus, UserPlus, CheckCircle, XCircle, DollarSign } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { AddUserDialog } from '@/components/admin/AddUserDialog';
 export default function Dashboard() {
+  const [isAddEmployeeDialogOpen, setIsAddEmployeeDialogOpen] = useState(false);
   const {
     user,
     userRole
@@ -272,7 +275,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-2">
             {userRole === 'ADMIN' ? <>
-                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/admin')}>
+                <Button className="w-full justify-start" variant="outline" onClick={() => setIsAddEmployeeDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Employee
                 </Button>
@@ -289,7 +292,7 @@ export default function Dashboard() {
                   Update Inventory
                 </Button>
               </> : <>
-                <Button className="w-full justify-start" variant="outline" onClick={() => navigate('/admin')}>
+                <Button className="w-full justify-start" variant="outline" onClick={() => setIsAddEmployeeDialogOpen(true)}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add Employee
                 </Button>
@@ -314,5 +317,10 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <AddUserDialog
+        open={isAddEmployeeDialogOpen}
+        onOpenChange={setIsAddEmployeeDialogOpen}
+      />
     </div>;
 }

@@ -72,23 +72,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (username: string, password: string) => {
     try {
-      // Look up user by username to get their email
-      const { data: profile, error: profileError } = await supabase
+      // 1) Look up profile by username to get email + role
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email, role, is_active')
         .eq('username', username)
         .maybeSingle();
 
+      // 2) If admin username not found, bootstrap via edge function (one-time)
+      if (!profile && username === 'wingrowagritech') {
+        const { error: fnError } = await supabase.functions.invoke('create-employee', {
+          body: {
+            name: 'Wingrow Admin',
+            username: 'wingrowagritech',
+            phone_number: '0000000000',
+            designation: 'Administrator',
+            location: 'Pune',
+            password,
+            role: 'ADMIN',
+          },
+        });
+        if (fnError) {
+          return { error: { message: 'Unable to provision admin user' } };
+        }
+        // Re-fetch profile after provisioning
+        ({ data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('email, role, is_active')
+          .eq('username', username)
+          .maybeSingle());
+      }
+
       if (profileError || !profile) {
         return { error: { message: 'Invalid username or password' } };
       }
 
-      if (!profile.is_active) {
+      if (profile.is_active === false) {
         return { error: { message: 'Your account has been deactivated. Please contact admin.' } };
       }
 
-      // Sign in with the email associated with this username
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // 3) Sign in with the associated email
+      const { error } = await supabase.auth.signInWithPassword({
         email: profile.email,
         password,
       });
@@ -97,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: 'Invalid username or password' } };
       }
 
-      // Navigate based on role
+      // 4) Navigate based on role
       if (profile.role === 'ADMIN') {
         navigate('/admin');
       } else {

@@ -4,13 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import wingrowLogo from '@/assets/wingrow-market-logo.png';
 
 const loginSchema = z.object({
-  email: z.string().email('Valid email is required'),
+  email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required')
 });
 
@@ -26,6 +26,7 @@ export default function Auth() {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -56,7 +57,9 @@ export default function Auth() {
       setIsLoading(false);
     }
   };
-  return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
       <div className="w-full max-w-md mx-auto">
         <Card className="w-full shadow-lg border-0">
           <CardContent className="pt-8 pb-6 px-6">
@@ -77,7 +80,7 @@ export default function Auth() {
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input 
                     id="login-email" 
                     name="email" 
@@ -127,5 +130,6 @@ export default function Auth() {
           </CardContent>
         </Card>
       </div>
-    </div>;
+    </div>
+  );
 }

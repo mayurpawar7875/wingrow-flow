@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
   user: User | null;
@@ -23,26 +23,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-          }, 0);
-        } else {
-          setUserRole(null);
-        }
+      if (session?.user) {
+        setTimeout(() => {
+          fetchUserRole(session.user.id);
+        }, 0);
+      } else {
+        setUserRole(null);
       }
-    );
+    });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchUserRole(session.user.id);
       } else {
@@ -55,16 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.from("profiles").select("role").eq("id", userId).single();
 
       if (error) throw error;
       setUserRole(data.role);
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error("Error fetching user role:", error);
     } finally {
       setLoading(false);
     }
@@ -72,45 +68,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (username: string, password: string) => {
     try {
-      const uname = (username ?? '').trim().toLowerCase();
+      const uname = (username ?? "").trim().toLowerCase();
 
       // 1) Look up profile by username to get email + role
       let { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('email, role, is_active')
-        .eq('username', uname)
+        .from("profiles")
+        .select("email, role, is_active")
+        .eq("username", uname)
         .maybeSingle();
 
       // 2) If admin username not found, bootstrap via edge function (one-time)
-      if (!profile && uname === 'wingrowagritech') {
-        const { error: fnError } = await supabase.functions.invoke('create-employee', {
+      if (!profile && uname === "wingrowagritech") {
+        const { error: fnError } = await supabase.functions.invoke("create-employee", {
           body: {
-            name: 'Wingrow Admin',
-            username: 'wingrowagritech',
-            phone_number: '0000000000',
-            designation: 'Administrator',
-            location: 'Pune',
-            password,
-            role: 'ADMIN',
+            name: "Wingrow Admin",
+            username: "wingrowagritech",
+            phone_number: "0000000000",
+            designation: "Administrator",
+            location: "Pune",
+            password: "Wingrow@1234",
+            role: "ADMIN",
           },
         });
         if (fnError) {
-          return { error: { message: 'Unable to provision admin user' } };
+          return { error: { message: "Unable to provision admin user" } };
         }
         // Re-fetch profile after provisioning
         ({ data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('email, role, is_active')
-          .eq('username', uname)
+          .from("profiles")
+          .select("email, role, is_active")
+          .eq("username", uname)
           .maybeSingle());
       }
 
       if (profileError || !profile) {
-        return { error: { message: 'Invalid username or password' } };
+        return { error: { message: "Invalid username or password" } };
       }
 
       if (profile.is_active === false) {
-        return { error: { message: 'Your account has been deactivated. Please contact admin.' } };
+        return { error: { message: "Your account has been deactivated. Please contact admin." } };
       }
 
       // 3) Sign in with the associated email (internal only)
@@ -120,16 +116,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       // If admin login fails, try to (re)provision admin and retry once
-      if (error && uname === 'wingrowagritech') {
-        const { error: fnError } = await supabase.functions.invoke('create-employee', {
+      if (error && uname === "wingrowagritech") {
+        const { error: fnError } = await supabase.functions.invoke("create-employee", {
           body: {
-            name: 'Wingrow Admin',
-            username: 'wingrowagritech',
-            phone_number: '0000000000',
-            designation: 'Administrator',
-            location: 'Pune',
-            password:'Wingrow@1234',
-            role: 'ADMIN',
+            name: "Wingrow Admin",
+            username: "wingrowagritech",
+            phone_number: "0000000000",
+            designation: "Administrator",
+            location: "Pune",
+            password: "Wingrow@1234",
+            role: "ADMIN",
           },
         });
 
@@ -143,26 +139,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (error) {
-        return { error: { message: 'Invalid username or password' } };
+        return { error: { message: "Invalid username or password" } };
       }
 
       // 4) Navigate based on role
-      if (profile.role === 'ADMIN') {
-        navigate('/admin');
+      if (profile.role === "ADMIN") {
+        navigate("/admin");
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
 
       return { error: null };
     } catch (e) {
-      console.error('Login error:', e);
-      return { error: { message: 'An error occurred during login' } };
+      console.error("Login error:", e);
+      return { error: { message: "An error occurred during login" } };
     }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    navigate('/auth');
+    navigate("/auth");
   };
 
   return (
@@ -184,7 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

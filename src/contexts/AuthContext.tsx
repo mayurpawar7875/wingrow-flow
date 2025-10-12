@@ -114,10 +114,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // 3) Sign in with the associated email (internal only)
-      const { error } = await supabase.auth.signInWithPassword({
+      let { error } = await supabase.auth.signInWithPassword({
         email: profile.email,
         password,
       });
+
+      // If admin login fails, try to (re)provision admin and retry once
+      if (error && uname === 'wingrowagritech') {
+        const { error: fnError } = await supabase.functions.invoke('create-employee', {
+          body: {
+            name: 'Wingrow Admin',
+            username: 'wingrowagritech',
+            phone_number: '0000000000',
+            designation: 'Administrator',
+            location: 'Pune',
+            password,
+            role: 'ADMIN',
+          },
+        });
+
+        if (!fnError) {
+          const retry = await supabase.auth.signInWithPassword({
+            email: profile.email,
+            password,
+          });
+          error = retry.error;
+        }
+      }
 
       if (error) {
         return { error: { message: 'Invalid username or password' } };

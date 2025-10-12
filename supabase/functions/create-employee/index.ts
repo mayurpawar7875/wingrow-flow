@@ -9,10 +9,10 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { name, username, phone_number, designation, location, password, role } = body ?? {};
+    const { name, email, phone_number, designation, location, password, role } = body ?? {};
 
     // Basic validation
-    if (!name || !username || !phone_number || !designation || !location || !password || !role) {
+    if (!name || !email || !phone_number || !designation || !location || !password || !role) {
       return new Response(JSON.stringify({ success: false, message: 'Missing required fields' }), { status: 400 });
     }
     if (!['Pune', 'Mumbai'].includes(location)) {
@@ -25,8 +25,6 @@ serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: { persistSession: false }
     });
-
-    const email = `${username}@wingrow.internal`;
 
     // 1) Ensure an auth user exists or update existing user's password
     let userId: string | null = null;
@@ -44,7 +42,7 @@ serve(async (req) => {
       const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
         password,
         email_confirm: true,
-        user_metadata: { name, username, phone_number, designation, location }
+        user_metadata: { name, phone_number, designation, location }
       });
       if (updateErr) {
         return new Response(JSON.stringify({ success: false, message: updateErr.message }), { status: 400 });
@@ -55,7 +53,7 @@ serve(async (req) => {
         email,
         password,
         email_confirm: true,
-        user_metadata: { name, username, phone_number, designation, location }
+        user_metadata: { name, phone_number, designation, location }
       });
       if (createErr || !created.user) {
         return new Response(JSON.stringify({ success: false, message: createErr?.message || 'Failed to create auth user' }), { status: 400 });
@@ -64,15 +62,16 @@ serve(async (req) => {
     }
 
     // 2) Ensure profile has all fields and set role
-    const { error: profileErr } = await admin.from('profiles').update({
+    const { error: profileErr } = await admin.from('profiles').upsert({
+      id: userId,
       name,
       email,
-      username,
       phone_number,
       designation,
       location,
-      role
-    }).eq('id', userId);
+      role,
+      is_active: true
+    }, { onConflict: 'id' });
     if (profileErr) {
       return new Response(JSON.stringify({ success: false, message: profileErr.message }), { status: 400 });
     }

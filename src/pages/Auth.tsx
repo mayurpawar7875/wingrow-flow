@@ -10,7 +10,7 @@ import { z } from 'zod';
 import wingrowLogo from '@/assets/wingrow-market-logo.png';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  email: z.string().email('Valid email is required'),
   password: z.string().min(1, 'Password is required')
 });
 
@@ -30,19 +30,19 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     const formData = new FormData(e.currentTarget);
-    const usernameRaw = formData.get('username') as string;
+    const emailRaw = formData.get('email') as string;
     const passwordRaw = formData.get('password') as string;
 
-    const username = (usernameRaw ?? '').trim().toLowerCase();
+    const email = (emailRaw ?? '').trim().toLowerCase();
     const password = (passwordRaw ?? '').trim();
 
     try {
-      loginSchema.parse({ username, password });
+      loginSchema.parse({ email, password });
       
-      const { error } = await signIn(username, password);
+      const { error } = await signIn(email, password);
       
       if (error) {
-        toast.error('Invalid username or password');
+        toast.error(error.message || 'Invalid email or password');
       } else {
         toast.success('Logged in successfully');
       }
@@ -79,13 +79,13 @@ export default function Auth() {
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input 
-                    id="login-username" 
-                    name="username" 
-                    type="text" 
-                    placeholder="Username" 
+                    id="login-email" 
+                    name="email" 
+                    type="email" 
+                    placeholder="Email" 
                     className="pl-10 h-12 border-border" 
                     required 
-                    autoComplete="username" 
+                    autoComplete="email" 
                   />
                 </div>
               </div>

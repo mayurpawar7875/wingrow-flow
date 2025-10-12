@@ -24,7 +24,7 @@ import { z } from 'zod';
 
 const userSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  username: z.string().min(3, 'Username must be at least 3 characters').regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  email: z.string().email('Valid email is required'),
   phone_number: z.string().min(10, 'Phone number must be at least 10 digits').regex(/^[0-9]+$/, 'Phone number must contain only digits'),
   designation: z.string().min(2, 'Designation must be at least 2 characters'),
   location: z.enum(['Pune', 'Mumbai']),
@@ -40,7 +40,7 @@ interface AddUserDialogProps {
 export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
-    username: '',
+    email: '',
     phone_number: '',
     designation: '',
     location: 'Pune' as 'Pune' | 'Mumbai',
@@ -54,15 +54,15 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       // Validate data
       userSchema.parse(data);
 
-      // Check if username already exists
+      // Check if email already exists
       const { data: existingUser } = await supabase
         .from('profiles')
-        .select('username')
-        .eq('username', data.username)
+        .select('email')
+        .eq('email', data.email.toLowerCase())
         .maybeSingle();
 
       if (existingUser) {
-        throw new Error('Username already exists');
+        throw new Error('Email already exists');
       }
 
       // Check if phone number already exists
@@ -80,7 +80,7 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
       const { data: fnData, error: fnError } = await supabase.functions.invoke('create-employee', {
         body: {
           name: data.name,
-          username: data.username,
+          email: data.email.toLowerCase(),
           phone_number: data.phone_number,
           designation: data.designation,
           location: data.location,
@@ -96,11 +96,11 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast.success('✅ Employee added successfully. They can now log in to their dashboard.');
+      toast.success('✅ Employee added successfully. They can now log in with their email.');
       onOpenChange(false);
       setFormData({
         name: '',
-        username: '',
+        email: '',
         phone_number: '',
         designation: '',
         location: 'Pune',
@@ -111,8 +111,8 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
     onError: (error: any) => {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
-      } else if (error.message?.includes('Username already exists')) {
-        toast.error('This username is already taken');
+      } else if (error.message?.includes('Email already exists')) {
+        toast.error('This email is already registered');
       } else if (error.message?.includes('Phone number already exists')) {
         toast.error('This phone number is already registered');
       } else if (error.message?.includes('already registered')) {
@@ -178,14 +178,15 @@ export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                value={formData.username}
+                id="email"
+                type="email"
+                value={formData.email}
                 onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
+                  setFormData({ ...formData, email: e.target.value })
                 }
-                placeholder="johndoe"
+                placeholder="john.doe@example.com"
                 required
               />
               <p className="text-xs text-muted-foreground">

@@ -212,7 +212,7 @@ export type Database = {
         Row: {
           created_at: string
           designation: string | null
-          email: string | null
+          email: string
           id: string
           is_active: boolean
           location: string | null
@@ -225,7 +225,7 @@ export type Database = {
         Insert: {
           created_at?: string
           designation?: string | null
-          email?: string | null
+          email: string
           id: string
           is_active?: boolean
           location?: string | null
@@ -238,7 +238,7 @@ export type Database = {
         Update: {
           created_at?: string
           designation?: string | null
-          email?: string | null
+          email?: string
           id?: string
           is_active?: boolean
           location?: string | null

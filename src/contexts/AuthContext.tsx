@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   loading: boolean;
-  signIn: (username: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -66,23 +66,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (username: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
-      const uname = (username ?? "").trim().toLowerCase();
+      // Normalize email
+      const normalizedEmail = (email ?? "").trim().toLowerCase();
 
-      // 1) Look up profile by username to get email + role
-      let { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("email, role, is_active")
-        .eq("username", uname)
-        .maybeSingle();
+      if (!normalizedEmail || !password) {
+        return { error: { message: "Email and password are required" } };
+      }
 
-      // 2) If admin username not found, bootstrap via edge function (one-time)
-      if (!profile && uname === "wingrowagritech") {
+      // Bootstrap admin user if trying to log in with admin email
+      if (normalizedEmail === "wingrowagritech@gmail.com") {
         const { error: fnError } = await supabase.functions.invoke("create-employee", {
           body: {
             name: "Wingrow Admin",
-            username: "wingrowagritech",
+            email: "wingrowagritech@gmail.com",
             phone_number: "0000000000",
             designation: "Administrator",
             location: "Pune",
@@ -90,59 +88,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: "ADMIN",
           },
         });
-        if (fnError) {
-          return { error: { message: "Unable to provision admin user" } };
-        }
-        // Re-fetch profile after provisioning
-        ({ data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("email, role, is_active")
-          .eq("username", uname)
-          .maybeSingle());
+        // Continue even if provision fails (user might already exist)
       }
 
-      if (profileError || !profile) {
-        return { error: { message: "Invalid username or password" } };
-      }
-
-      if (profile.is_active === false) {
-        return { error: { message: "Your account has been deactivated. Please contact admin." } };
-      }
-
-      // 3) Sign in with the associated email (internal only)
-      let { error } = await supabase.auth.signInWithPassword({
-        email: profile.email,
+      // Attempt sign in
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
         password,
       });
 
-      // If admin login fails, try to (re)provision admin and retry once
-      if (error && uname === "wingrowagritech") {
-        const { error: fnError } = await supabase.functions.invoke("create-employee", {
-          body: {
-            name: "Wingrow Admin",
-            username: "wingrowagritech",
-            phone_number: "0000000000",
-            designation: "Administrator",
-            location: "Pune",
-            password: "Wingrow@1234",
-            role: "ADMIN",
-          },
-        });
-
-        if (!fnError) {
-          const retry = await supabase.auth.signInWithPassword({
-            email: profile.email,
-            password,
-          });
-          error = retry.error;
-        }
-      }
-
       if (error) {
-        return { error: { message: "Invalid username or password" } };
+        return { error: { message: "Invalid email or password" } };
       }
 
-      // 4) Navigate based on role
+      if (!data.user) {
+        return { error: { message: "Login error. Please contact admin." } };
+      }
+
+      // Fetch profile to check role and is_active
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, is_active")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        await supabase.auth.signOut();
+        return { error: { message: "Account not fully set up. Contact admin." } };
+      }
+
+      if (profile.is_active === false) {
+        await supabase.auth.signOut();
+        return { error: { message: "Your account has been deactivated. Please contact admin." } };
+      }
+
+      // Navigate based on role
       if (profile.role === "ADMIN") {
         navigate("/admin");
       } else {

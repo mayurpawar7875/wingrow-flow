@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phone_number: '0000000000',
             designation: 'Administrator',
             location: 'Pune',
-            password,
+            password:'Wingrow@1234',
             role: 'ADMIN',
           },
         });

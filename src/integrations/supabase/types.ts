@@ -262,8 +262,10 @@ export type Database = {
           date: string
           id: string
           manager_comment: string | null
+          market_or_location: string | null
           notes: string | null
           payment_reference: string | null
+          reviewed_by: string | null
           status: Database["public"]["Enums"]["reimbursement_status"]
           updated_at: string
           user_id: string
@@ -276,8 +278,10 @@ export type Database = {
           date: string
           id?: string
           manager_comment?: string | null
+          market_or_location?: string | null
           notes?: string | null
           payment_reference?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["reimbursement_status"]
           updated_at?: string
           user_id: string
@@ -290,8 +294,10 @@ export type Database = {
           date?: string
           id?: string
           manager_comment?: string | null
+          market_or_location?: string | null
           notes?: string | null
           payment_reference?: string | null
+          reviewed_by?: string | null
           status?: Database["public"]["Enums"]["reimbursement_status"]
           updated_at?: string
           user_id?: string

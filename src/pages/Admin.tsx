@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { SystemSettings } from '@/components/admin/SystemSettings';
 import { AuditLogs } from '@/components/admin/AuditLogs';
 import { ItemRequestsManagement } from '@/components/admin/ItemRequestsManagement';
+import { ReimbursementsManagement } from '@/components/admin/ReimbursementsManagement';
 
 export default function Admin() {
   return (
@@ -19,6 +19,7 @@ export default function Admin() {
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="requests">Item Requests</TabsTrigger>
+          <TabsTrigger value="reimbursements">Reimbursements</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="audit">Audit Logs</TabsTrigger>
         </TabsList>
@@ -29,6 +30,10 @@ export default function Admin() {
 
         <TabsContent value="requests" className="mt-6">
           <ItemRequestsManagement />
+        </TabsContent>
+
+        <TabsContent value="reimbursements" className="mt-6">
+          <ReimbursementsManagement />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

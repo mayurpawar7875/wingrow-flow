@@ -207,6 +207,7 @@ export type Database = {
           id: string
           is_settled: boolean
           manager_comment: string | null
+          market_or_location: string | null
           needed_by: string | null
           priority: Database["public"]["Enums"]["priority_level"]
           proof_of_payment_remarks: string | null
@@ -227,6 +228,7 @@ export type Database = {
           id?: string
           is_settled?: boolean
           manager_comment?: string | null
+          market_or_location?: string | null
           needed_by?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
           proof_of_payment_remarks?: string | null
@@ -247,6 +249,7 @@ export type Database = {
           id?: string
           is_settled?: boolean
           manager_comment?: string | null
+          market_or_location?: string | null
           needed_by?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
           proof_of_payment_remarks?: string | null

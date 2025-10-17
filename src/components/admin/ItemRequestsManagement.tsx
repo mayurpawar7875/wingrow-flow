@@ -10,17 +10,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { ExternalLink, CheckCircle, XCircle, Loader2, FileCheck, IndianRupee } from 'lucide-react';
+import { ExternalLink, CheckCircle, XCircle, Loader2, FileCheck, IndianRupee, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export function ItemRequestsManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [marketFilter, setMarketFilter] = useState<string>('all');
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [reviewAction, setReviewAction] = useState<'Approved' | 'Rejected' | null>(null);
   const [managerComment, setManagerComment] = useState('');
+  const [detailsSheetOpen, setDetailsSheetOpen] = useState(false);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['admin-item-requests'],
@@ -137,11 +142,24 @@ export function ItemRequestsManagement() {
     }
   };
 
-  const filteredRequests = requests?.filter(req => 
-    req.profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    req.profile?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    req.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRequests = requests?.filter(req => {
+    const matchesSearch = 
+      req.profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.profile?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      req.title?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || req.status === statusFilter;
+    const matchesMarket = marketFilter === 'all' || req.market_or_location === marketFilter;
+    
+    return matchesSearch && matchesStatus && matchesMarket;
+  });
+
+  const uniqueMarkets = [...new Set(requests?.map(r => r.market_or_location).filter(Boolean))];
+  
+  const handleViewDetails = (request: any) => {
+    setSelectedRequest(request);
+    setDetailsSheetOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -159,14 +177,38 @@ export function ItemRequestsManagement() {
         <CardTitle>Item Requests for Approval</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Search */}
-        <div className="flex items-center gap-2">
+        {/* Search and Filters */}
+        <div className="flex flex-col sm:flex-row gap-2">
           <Input
             placeholder="Search by employee name, email, or item..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-sm"
           />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="Submitted">Pending</SelectItem>
+              <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={marketFilter} onValueChange={setMarketFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filter by market" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Markets</SelectItem>
+              {uniqueMarkets.map((market) => (
+                <SelectItem key={market} value={market || ''}>
+                  {market}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
@@ -175,14 +217,11 @@ export function ItemRequestsManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>Employee</TableHead>
+                <TableHead>Market</TableHead>
                 <TableHead>Item Name</TableHead>
                 <TableHead>Quantity</TableHead>
-                <TableHead>Category</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Receipt</TableHead>
-                <TableHead>Proof</TableHead>
-                <TableHead>Collections</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -196,128 +235,201 @@ export function ItemRequestsManagement() {
                         <div className="text-xs text-muted-foreground">{request.profile?.email}</div>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {request.market_or_location || <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell className="font-medium">{request.title}</TableCell>
                     <TableCell>{request.quantity} {request.unit}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{request.category}</Badge>
-                    </TableCell>
-                    <TableCell>
                       <Badge className={getStatusColor(request.status)}>{request.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {format(new Date(request.created_at), 'MMM dd, yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {request.attachment_url ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                        >
-                          <a
-                            href={request.attachment_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gap-1"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            View
-                          </a>
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {request.proof_of_payment_url ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                        >
-                          <a
-                            href={request.proof_of_payment_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="gap-1"
-                          >
-                            <FileCheck className="h-4 w-4 text-success" />
-                            View
-                          </a>
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {request.status === 'Approved' ? 'Pending' : '-'}
-                        </span>
+                      {request.is_settled && (
+                        <Badge variant="outline" className="ml-1 bg-success/20 text-success">
+                          Settled
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>
                       {request.status === 'Approved' ? (
-                        <div className="space-y-2 min-w-[200px]">
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>
-                              <p className="text-muted-foreground">Total Due</p>
-                              <p className="font-semibold flex items-center">
-                                <IndianRupee className="h-3 w-3" />
-                                {request.totalDue.toFixed(2)}
-                              </p>
+                        <div className="space-y-1 min-w-[150px]">
+                          <div className="text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Due:</span>
+                              <span className="font-semibold">₹{request.totalDue.toFixed(2)}</span>
                             </div>
-                            <div>
-                              <p className="text-muted-foreground">Received</p>
-                              <p className="font-semibold text-success flex items-center">
-                                <IndianRupee className="h-3 w-3" />
-                                {request.totalReceived.toFixed(2)}
-                              </p>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Received:</span>
+                              <span className="font-semibold text-success">₹{request.totalReceived.toFixed(2)}</span>
                             </div>
-                            <div>
-                              <p className="text-muted-foreground">Pending</p>
-                              <p className="font-semibold text-destructive flex items-center">
-                                <IndianRupee className="h-3 w-3" />
-                                {request.pendingAmount.toFixed(2)}
-                              </p>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Pending:</span>
+                              <span className="font-semibold text-destructive">₹{request.pendingAmount.toFixed(2)}</span>
                             </div>
                           </div>
-                          {request.is_settled && (
-                            <Badge variant="outline" className="bg-success/20 text-success">
-                              Settled
-                            </Badge>
-                          )}
-                          {request.collections && request.collections.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-xs font-medium text-muted-foreground">Collections:</p>
-                              {request.collections.map((collection: any) => (
-                                <div key={collection.id} className="text-xs border-l-2 border-primary/20 pl-2 py-1">
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium">₹{parseFloat(collection.amount).toFixed(2)}</span>
-                                    <span className="text-muted-foreground">{format(new Date(collection.recorded_at), 'MMM dd, yyyy')}</span>
-                                  </div>
-                                  {collection.receipt_url && (
-                                    <Button
-                                      variant="link"
-                                      size="sm"
-                                      asChild
-                                      className="h-auto p-0 text-xs"
-                                    >
-                                      <a href={collection.receipt_url} target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="h-3 w-3 mr-1" />
-                                        View Receipt
-                                      </a>
-                                    </Button>
-                                  )}
-                                  {collection.remarks && (
-                                    <p className="text-muted-foreground italic">{collection.remarks}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {request.status === 'Submitted' ? (
+                      <div className="flex gap-1">
+                        <Sheet open={detailsSheetOpen && selectedRequest?.id === request.id} onOpenChange={(open) => {
+                          setDetailsSheetOpen(open);
+                          if (!open) setSelectedRequest(null);
+                        }}>
+                          <SheetTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewDetails(request)}
+                              className="gap-1"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Details
+                            </Button>
+                          </SheetTrigger>
+                          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+                            <SheetHeader>
+                              <SheetTitle>Request Details</SheetTitle>
+                            </SheetHeader>
+                            {selectedRequest && (
+                              <div className="space-y-6 py-4">
+                                {/* Employee & Request Info */}
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-muted-foreground">Employee</Label>
+                                      <p className="font-medium">{selectedRequest.profile?.name}</p>
+                                      <p className="text-sm text-muted-foreground">{selectedRequest.profile?.email}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-muted-foreground">Market Name</Label>
+                                      <p className="font-medium">{selectedRequest.market_or_location || '—'}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <Separator />
+                                  
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-muted-foreground">Item Name</Label>
+                                      <p className="font-medium">{selectedRequest.title}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-muted-foreground">Category</Label>
+                                      <Badge variant="outline">{selectedRequest.category}</Badge>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                      <Label className="text-muted-foreground">Quantity</Label>
+                                      <p className="font-medium">{selectedRequest.quantity} {selectedRequest.unit}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-muted-foreground">Unit Price</Label>
+                                      <p className="font-medium">₹{(selectedRequest.totalDue / selectedRequest.quantity).toFixed(2)}</p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-muted-foreground">Status</Label>
+                                      <Badge className={getStatusColor(selectedRequest.status)}>{selectedRequest.status}</Badge>
+                                    </div>
+                                  </div>
+                                  
+                                  {selectedRequest.description && (
+                                    <div>
+                                      <Label className="text-muted-foreground">Description</Label>
+                                      <p className="text-sm">{selectedRequest.description}</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Payment Summary */}
+                                {selectedRequest.status === 'Approved' && (
+                                  <>
+                                    <Separator />
+                                    <div className="space-y-4">
+                                      <h3 className="font-semibold">Payment Summary</h3>
+                                      <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                                        <div>
+                                          <p className="text-sm text-muted-foreground">Total Due</p>
+                                          <p className="text-xl font-bold flex items-center">
+                                            <IndianRupee className="h-5 w-5" />
+                                            {selectedRequest.totalDue.toFixed(2)}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-muted-foreground">Received</p>
+                                          <p className="text-xl font-bold text-success flex items-center">
+                                            <IndianRupee className="h-5 w-5" />
+                                            {selectedRequest.totalReceived.toFixed(2)}
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm text-muted-foreground">Pending</p>
+                                          <p className="text-xl font-bold text-destructive flex items-center">
+                                            <IndianRupee className="h-5 w-5" />
+                                            {selectedRequest.pendingAmount.toFixed(2)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Collections History */}
+                                    {selectedRequest.collections && selectedRequest.collections.length > 0 && (
+                                      <>
+                                        <Separator />
+                                        <div className="space-y-4">
+                                          <h3 className="font-semibold">Collections History</h3>
+                                          <div className="space-y-3">
+                                            {selectedRequest.collections.map((collection: any) => (
+                                              <div key={collection.id} className="border rounded-lg p-4 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                  <div>
+                                                    <p className="font-semibold text-lg">₹{parseFloat(collection.amount).toFixed(2)}</p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                      {format(new Date(collection.recorded_at), 'PPP')}
+                                                    </p>
+                                                  </div>
+                                                  {collection.receipt_url && (
+                                                    <Button variant="outline" size="sm" asChild>
+                                                      <a href={collection.receipt_url} target="_blank" rel="noopener noreferrer">
+                                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                                        View Receipt
+                                                      </a>
+                                                    </Button>
+                                                  )}
+                                                </div>
+                                                {collection.remarks && (
+                                                  <div className="pt-2 border-t">
+                                                    <Label className="text-muted-foreground">Remarks</Label>
+                                                    <p className="text-sm">{collection.remarks}</p>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* Manager Comment */}
+                                {selectedRequest.manager_comment && (
+                                  <>
+                                    <Separator />
+                                    <div>
+                                      <Label className="text-muted-foreground">Manager Comment</Label>
+                                      <p className="text-sm mt-1">{selectedRequest.manager_comment}</p>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </SheetContent>
+                        </Sheet>
+                        
+                        {request.status === 'Submitted' && (
                         <div className="flex gap-1">
                           <Dialog open={reviewDialogOpen && selectedRequest?.id === request.id} onOpenChange={(open) => {
                             setReviewDialogOpen(open);
@@ -420,15 +532,14 @@ export function ItemRequestsManagement() {
                             Reject
                           </Button>
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No requests found
                   </TableCell>
                 </TableRow>

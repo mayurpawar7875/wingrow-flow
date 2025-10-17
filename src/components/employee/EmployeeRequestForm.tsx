@@ -16,6 +16,7 @@ import { Loader2, Upload } from 'lucide-react';
 const itemRequestSchema = z.object({
   inventoryItemId: z.string().min(1, 'Please select an item'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
+  market_or_location: z.string().optional(),
   remarks: z.string().optional(),
 });
 
@@ -56,6 +57,7 @@ export function EmployeeRequestForm({ onSuccess }: EmployeeRequestFormProps) {
     defaultValues: {
       inventoryItemId: '',
       quantity: 1,
+      market_or_location: '',
       remarks: '',
     },
   });
@@ -144,6 +146,7 @@ export function EmployeeRequestForm({ onSuccess }: EmployeeRequestFormProps) {
         quantity: values.quantity,
         unit: selectedInventoryItem.unit,
         description: values.remarks || null,
+        market_or_location: values.market_or_location || null,
         attachment_url: fileUrl,
         status: 'Submitted',
         priority: 'Medium',
@@ -274,6 +277,16 @@ export function EmployeeRequestForm({ onSuccess }: EmployeeRequestFormProps) {
                 {itemForm.formState.errors.quantity && (
                   <p className="text-sm text-destructive">{itemForm.formState.errors.quantity.message}</p>
                 )}
+              </div>
+
+              {/* Market/Location */}
+              <div className="space-y-2">
+                <Label htmlFor="item-location">Market/Location</Label>
+                <Input
+                  id="item-location"
+                  {...itemForm.register('market_or_location')}
+                  placeholder="e.g., Mumbai Central"
+                />
               </div>
 
               {/* File Upload */}

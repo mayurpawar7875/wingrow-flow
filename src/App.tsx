@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Employee from "./pages/Employee";
 import Requests from "./pages/Requests";
 import Reimbursements from "./pages/Reimbursements";
 import Inventory from "./pages/Inventory";
@@ -28,11 +29,17 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/employee" replace />} />
             <Route path="/auth" element={<Auth />} />
             
+            <Route path="/employee" element={
+              <ProtectedRoute allowedRoles={['EMPLOYEE']}>
+                <Employee />
+              </ProtectedRoute>
+            } />
+            
             <Route path="/dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
                 <AppLayout>
                   <Dashboard />
                 </AppLayout>

@@ -125,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Navigate based on role
       if (profile.role === "ADMIN") {
         navigate("/admin");
+      } else if (profile.role === "EMPLOYEE") {
+        navigate("/employee");
       } else {
         navigate("/dashboard");
       }

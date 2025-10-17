@@ -170,6 +170,9 @@ export type Database = {
           manager_comment: string | null
           needed_by: string | null
           priority: Database["public"]["Enums"]["priority_level"]
+          proof_of_payment_remarks: string | null
+          proof_of_payment_url: string | null
+          proof_uploaded_at: string | null
           quantity: number
           status: Database["public"]["Enums"]["request_status"]
           title: string
@@ -186,6 +189,9 @@ export type Database = {
           manager_comment?: string | null
           needed_by?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
+          proof_of_payment_remarks?: string | null
+          proof_of_payment_url?: string | null
+          proof_uploaded_at?: string | null
           quantity: number
           status?: Database["public"]["Enums"]["request_status"]
           title: string
@@ -202,6 +208,9 @@ export type Database = {
           manager_comment?: string | null
           needed_by?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
+          proof_of_payment_remarks?: string | null
+          proof_of_payment_url?: string | null
+          proof_uploaded_at?: string | null
           quantity?: number
           status?: Database["public"]["Enums"]["request_status"]
           title?: string

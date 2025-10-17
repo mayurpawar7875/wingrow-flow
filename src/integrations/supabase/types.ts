@@ -50,6 +50,44 @@ export type Database = {
         }
         Relationships: []
       }
+      collections: {
+        Row: {
+          amount: number
+          id: string
+          item_request_id: string
+          receipt_url: string | null
+          recorded_at: string
+          recorded_by: string
+          remarks: string | null
+        }
+        Insert: {
+          amount: number
+          id?: string
+          item_request_id: string
+          receipt_url?: string | null
+          recorded_at?: string
+          recorded_by: string
+          remarks?: string | null
+        }
+        Update: {
+          amount?: number
+          id?: string
+          item_request_id?: string
+          receipt_url?: string | null
+          recorded_at?: string
+          recorded_by?: string
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collections_item_request_id_fkey"
+            columns: ["item_request_id"]
+            isOneToOne: false
+            referencedRelation: "item_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           created_at: string
@@ -167,6 +205,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_settled: boolean
           manager_comment: string | null
           needed_by: string | null
           priority: Database["public"]["Enums"]["priority_level"]
@@ -186,6 +225,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_settled?: boolean
           manager_comment?: string | null
           needed_by?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]
@@ -205,6 +245,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_settled?: boolean
           manager_comment?: string | null
           needed_by?: string | null
           priority?: Database["public"]["Enums"]["priority_level"]

@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { ExternalLink, CheckCircle, XCircle, Loader2, FileCheck } from 'lucide-react';
+import { ExternalLink, CheckCircle, XCircle, Loader2, FileCheck, IndianRupee } from 'lucide-react';
 import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
 
 export function ItemRequestsManagement() {
   const queryClient = useQueryClient();
@@ -31,6 +32,67 @@ export function ItemRequestsManagement() {
       
       if (requestsError) throw requestsError;
 
+      // Fetch inventory items to get prices
+      const itemNames = [...new Set(requestsData?.map(r => r.title))];
+      const { data: inventoryItems, error: invError } = await supabase
+        .from('inventory_items')
+        .select('name, price_per_item');
+      
+      if (invError) throw invError;
+      
+      const inventoryMap = new Map(inventoryItems?.map(item => [item.name, item.price_per_item || 0]));
+
+      // Fetch user profiles
+      const userIds = [...new Set(requestsData?.map(r => r.user_id))];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+
+      // Fetch collections
+      const requestIds = requestsData?.map(r => r.id) || [];
+      let collections: any[] = [];
+      if (requestIds.length > 0) {
+        const { data: collectionsData, error: collectionsError } = await supabase
+          .from('collections')
+          .select('*')
+          .in('item_request_id', requestIds)
+          .order('recorded_at', { ascending: false });
+        
+        if (collectionsError) throw collectionsError;
+        collections = collectionsData || [];
+      }
+
+      // Merge the data
+      const profilesMap = new Map(profiles?.map(p => [p.id, p]));
+      return requestsData?.map(request => {
+        const requestCollections = collections.filter(c => c.item_request_id === request.id);
+        const totalReceived = requestCollections.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+        const pricePerItem = inventoryMap.get(request.title) || 0;
+        const totalDue = pricePerItem * request.quantity;
+        const pendingAmount = Math.max(0, totalDue - totalReceived);
+
+        return {
+          ...request,
+          profile: profilesMap.get(request.user_id),
+          collections: requestCollections,
+          totalDue,
+          totalReceived,
+          pendingAmount,
+        };
+      });
+    },
+  });
+      // Fetch item requests
+      const { data: requestsData, error: requestsError } = await supabase
+        .from('item_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (requestsError) throw requestsError;
+
       // Fetch user profiles separately
       const userIds = [...new Set(requestsData?.map(r => r.user_id))];
       const { data: profiles, error: profilesError } = await supabase
@@ -40,12 +102,59 @@ export function ItemRequestsManagement() {
       
       if (profilesError) throw profilesError;
 
+      // Fetch inventory items to get prices
+      const itemNames = [...new Set(requestsData?.map(r => r.title))];
+      const { data: inventoryItems, error: invError } = await supabase
+        .from('inventory_items')
+        .select('name, price_per_item');
+      
+      if (invError) throw invError;
+      
+      const inventoryMap = new Map(inventoryItems?.map(item => [item.name, item.price_per_item || 0]));
+      
+      if (requestsError) throw requestsError;
+
+      // Fetch user profiles separately
+      const userIds = [...new Set(requestsData?.map(r => r.user_id))];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+
+      // Fetch collections
+      const requestIds = requestsData?.map(r => r.id) || [];
+      let collections: any[] = [];
+      if (requestIds.length > 0) {
+        const { data: collectionsData, error: collectionsError } = await supabase
+          .from('collections')
+          .select('*')
+          .in('item_request_id', requestIds)
+          .order('recorded_at', { ascending: false });
+        
+        if (collectionsError) throw collectionsError;
+        collections = collectionsData || [];
+      }
+
       // Merge the data
       const profilesMap = new Map(profiles?.map(p => [p.id, p]));
-      return requestsData?.map(request => ({
-        ...request,
-        profile: profilesMap.get(request.user_id),
-      }));
+      return requestsData?.map(request => {
+        const requestCollections = collections.filter(c => c.item_request_id === request.id);
+        const totalReceived = requestCollections.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+        const pricePerItem = inventoryMap.get(request.title) || 0;
+        const totalDue = pricePerItem * request.quantity;
+        const pendingAmount = Math.max(0, totalDue - totalReceived);
+
+        return {
+          ...request,
+          profile: profilesMap.get(request.user_id),
+          collections: requestCollections,
+          totalDue,
+          totalReceived,
+          pendingAmount,
+        };
+      });
     },
   });
 
@@ -145,6 +254,7 @@ export function ItemRequestsManagement() {
                 <TableHead>Date</TableHead>
                 <TableHead>Receipt</TableHead>
                 <TableHead>Proof</TableHead>
+                <TableHead>Collections</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -211,6 +321,71 @@ export function ItemRequestsManagement() {
                         <span className="text-xs text-muted-foreground">
                           {request.status === 'Approved' ? 'Pending' : '-'}
                         </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {request.status === 'Approved' ? (
+                        <div className="space-y-2 min-w-[200px]">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div>
+                              <p className="text-muted-foreground">Total Due</p>
+                              <p className="font-semibold flex items-center">
+                                <IndianRupee className="h-3 w-3" />
+                                {request.totalDue.toFixed(2)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Received</p>
+                              <p className="font-semibold text-success flex items-center">
+                                <IndianRupee className="h-3 w-3" />
+                                {request.totalReceived.toFixed(2)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Pending</p>
+                              <p className="font-semibold text-destructive flex items-center">
+                                <IndianRupee className="h-3 w-3" />
+                                {request.pendingAmount.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                          {request.is_settled && (
+                            <Badge variant="outline" className="bg-success/20 text-success">
+                              Settled
+                            </Badge>
+                          )}
+                          {request.collections && request.collections.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">Collections:</p>
+                              {request.collections.map((collection: any) => (
+                                <div key={collection.id} className="text-xs border-l-2 border-primary/20 pl-2 py-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">₹{parseFloat(collection.amount).toFixed(2)}</span>
+                                    <span className="text-muted-foreground">{format(new Date(collection.recorded_at), 'MMM dd, yyyy')}</span>
+                                  </div>
+                                  {collection.receipt_url && (
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      asChild
+                                      className="h-auto p-0 text-xs"
+                                    >
+                                      <a href={collection.receipt_url} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                        View Receipt
+                                      </a>
+                                    </Button>
+                                  )}
+                                  {collection.remarks && (
+                                    <p className="text-muted-foreground italic">{collection.remarks}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -325,7 +500,7 @@ export function ItemRequestsManagement() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                     No requests found
                   </TableCell>
                 </TableRow>

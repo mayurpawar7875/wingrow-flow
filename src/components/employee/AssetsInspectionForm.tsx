@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Camera, MapPin, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -125,15 +126,6 @@ export function AssetsInspectionForm() {
   }, [itemId, inventoryItems]);
 
   const onSubmit = async (data: InspectionFormData) => {
-    if (!isWednesday()) {
-      toast({
-        title: 'Invalid Day',
-        description: 'Asset inspection is mandatory every Wednesday. You can submit only on Wednesday.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     if (!location) {
       toast({
         title: 'Location Required',
@@ -144,6 +136,8 @@ export function AssetsInspectionForm() {
     }
 
     if (!user) return;
+
+    const isLate = !isWednesday();
 
     setIsSubmitting(true);
 
@@ -176,13 +170,18 @@ export function AssetsInspectionForm() {
           selfie_url: publicUrl,
           gps_latitude: location.latitude,
           gps_longitude: location.longitude,
+          is_late: isLate,
+          submission_date: new Date().toISOString(),
         });
 
       if (insertError) throw insertError;
 
       toast({
         title: 'Success',
-        description: 'Asset inspection submitted successfully.',
+        description: isLate 
+          ? 'Late inspection submitted. This will be marked as a late submission.'
+          : 'Asset inspection submitted successfully.',
+        variant: isLate ? 'default' : 'default',
       });
 
       queryClient.invalidateQueries({ queryKey: ['asset-inspections'] });
@@ -201,25 +200,16 @@ export function AssetsInspectionForm() {
     }
   };
 
-  if (!isWednesday()) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Assets Inspection
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">
-              Asset inspection is mandatory every Wednesday. You can submit only on Wednesday.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const lateWarning = !isWednesday() && (
+    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 mb-4">
+      <p className="text-sm text-destructive font-medium">
+        ⚠️ Late Submission Warning
+      </p>
+      <p className="text-sm text-muted-foreground mt-1">
+        Asset inspection is mandatory every Wednesday. Submitting on any other day will be marked as <strong>Late Submission</strong> and may be subject to a fine.
+      </p>
+    </div>
+  );
 
   if (todayInspection) {
     return (
@@ -232,7 +222,12 @@ export function AssetsInspectionForm() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <p className="text-green-600 font-medium">✓ Inspection submitted for today</p>
+            <div className="flex items-center gap-2">
+              <p className="text-green-600 font-medium">✓ Inspection submitted for today</p>
+              {todayInspection.is_late && (
+                <Badge variant="destructive" className="text-xs">Late Submission</Badge>
+              )}
+            </div>
             <div className="grid gap-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Item:</span>
@@ -260,6 +255,18 @@ export function AssetsInspectionForm() {
                   {todayInspection.status}
                 </span>
               </div>
+              {todayInspection.fine_amount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Fine Amount:</span>
+                  <span className="font-medium text-destructive">₹{todayInspection.fine_amount}</span>
+                </div>
+              )}
+              {todayInspection.late_remarks && (
+                <div className="pt-2 border-t">
+                  <span className="text-sm text-muted-foreground">Admin Remarks:</span>
+                  <p className="text-sm mt-1">{todayInspection.late_remarks}</p>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -276,6 +283,7 @@ export function AssetsInspectionForm() {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {lateWarning}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="item_id">Item Name *</Label>

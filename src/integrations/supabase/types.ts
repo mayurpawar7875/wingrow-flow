@@ -22,15 +22,19 @@ export type Database = {
           created_at: string
           employee_id: string
           expected_quantity: number
+          fine_amount: number | null
           gps_latitude: number
           gps_longitude: number
           id: string
           inspection_date: string
+          is_late: boolean
           item_id: string
+          late_remarks: string | null
           notes: string | null
           reviewed_by: string | null
           selfie_url: string
           status: Database["public"]["Enums"]["inspection_status"]
+          submission_date: string
           updated_at: string
         }
         Insert: {
@@ -40,15 +44,19 @@ export type Database = {
           created_at?: string
           employee_id: string
           expected_quantity: number
+          fine_amount?: number | null
           gps_latitude: number
           gps_longitude: number
           id?: string
           inspection_date?: string
+          is_late?: boolean
           item_id: string
+          late_remarks?: string | null
           notes?: string | null
           reviewed_by?: string | null
           selfie_url: string
           status?: Database["public"]["Enums"]["inspection_status"]
+          submission_date?: string
           updated_at?: string
         }
         Update: {
@@ -58,15 +66,19 @@ export type Database = {
           created_at?: string
           employee_id?: string
           expected_quantity?: number
+          fine_amount?: number | null
           gps_latitude?: number
           gps_longitude?: number
           id?: string
           inspection_date?: string
+          is_late?: boolean
           item_id?: string
+          late_remarks?: string | null
           notes?: string | null
           reviewed_by?: string | null
           selfie_url?: string
           status?: Database["public"]["Enums"]["inspection_status"]
+          submission_date?: string
           updated_at?: string
         }
         Relationships: [

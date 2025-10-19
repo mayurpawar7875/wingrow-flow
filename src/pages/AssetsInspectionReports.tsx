@@ -28,11 +28,17 @@ export default function AssetsInspectionReports() {
   const [lateRemarks, setLateRemarks] = useState('');
 
   const { data: inspections = [], refetch } = useQuery({
-    queryKey: ['asset-inspections-admin'],
+    queryKey: ['inspection-sessions-admin'],
     queryFn: async () => {
-      const { data: inspectionsData, error } = await supabase
-        .from('asset_inspections')
-        .select('*, inventory_items(name, unit)')
+      const { data: sessionsData, error } = await supabase
+        .from('inspection_sessions')
+        .select(`
+          *,
+          inspection_assets(
+            *,
+            inventory_items(name, unit)
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -44,49 +50,51 @@ export default function AssetsInspectionReports() {
 
       const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-      return inspectionsData?.map(inspection => ({
-        ...inspection,
-        employee_profile: profilesMap.get(inspection.employee_id)
+      return sessionsData?.map(session => ({
+        ...session,
+        employee_profile: profilesMap.get(session.employee_id)
       })) || [];
     },
   });
 
-  const filteredInspections = inspections.filter((inspection) => {
+  const filteredInspections = inspections.filter((session) => {
     const matchesSearch =
-      inspection.employee_profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inspection.inventory_items?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      session.employee_profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      session.inspection_assets?.some((asset: any) =>
+        asset.inventory_items?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-    const matchesStatus = statusFilter === 'all' || inspection.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || session.status === statusFilter;
     
     const matchesLate = 
       lateFilter === 'all' || 
-      (lateFilter === 'late' && inspection.is_late) ||
-      (lateFilter === 'ontime' && !inspection.is_late);
+      (lateFilter === 'late' && session.is_late) ||
+      (lateFilter === 'ontime' && !session.is_late);
 
-    const matchesDate = !dateFilter || inspection.inspection_date === dateFilter;
+    const matchesDate = !dateFilter || session.inspection_date === dateFilter;
 
     return matchesSearch && matchesStatus && matchesLate && matchesDate;
   });
 
-  const handleStatusUpdate = async (inspectionId: string, newStatus: 'Approved' | 'Rejected') => {
+  const handleStatusUpdate = async (sessionId: string, newStatus: 'Approved' | 'Rejected') => {
     try {
       const { error } = await supabase
-        .from('asset_inspections')
+        .from('inspection_sessions')
         .update({ status: newStatus })
-        .eq('id', inspectionId);
+        .eq('id', sessionId);
 
       if (error) throw error;
 
       toast({
         title: 'Success',
-        description: `Inspection ${newStatus.toLowerCase()} successfully.`,
+        description: `Inspection session ${newStatus.toLowerCase()} successfully.`,
       });
 
       refetch();
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update inspection',
+        description: error.message || 'Failed to update inspection session',
         variant: 'destructive',
       });
     }
@@ -97,7 +105,7 @@ export default function AssetsInspectionReports() {
 
     try {
       const { error } = await supabase
-        .from('asset_inspections')
+        .from('inspection_sessions')
         .update({
           fine_amount: fineAmount ? parseFloat(fineAmount) : 0,
           late_remarks: lateRemarks || null,
@@ -142,22 +150,24 @@ export default function AssetsInspectionReports() {
       'Late Remarks',
     ];
 
-    const rows = filteredInspections.map((inspection) => [
-      format(new Date(inspection.submission_date), 'yyyy-MM-dd HH:mm'),
-      format(new Date(inspection.inspection_date), 'yyyy-MM-dd'),
-      inspection.employee_profile?.name || 'N/A',
-      inspection.inventory_items?.name || 'N/A',
-      inspection.expected_quantity,
-      inspection.available_quantity,
-      inspection.condition,
-      inspection.notes || '',
-      inspection.gps_latitude,
-      inspection.gps_longitude,
-      inspection.status,
-      inspection.is_late ? 'Yes' : 'No',
-      inspection.fine_amount || 0,
-      inspection.late_remarks || '',
-    ]);
+    const rows = filteredInspections.flatMap((session) =>
+      session.inspection_assets?.map((asset: any) => [
+        format(new Date(session.submission_date), 'yyyy-MM-dd HH:mm'),
+        format(new Date(session.inspection_date), 'yyyy-MM-dd'),
+        session.employee_profile?.name || 'N/A',
+        asset.inventory_items?.name || 'N/A',
+        asset.expected_quantity,
+        asset.available_quantity,
+        asset.condition,
+        asset.notes || '',
+        session.gps_latitude,
+        session.gps_longitude,
+        session.status,
+        session.is_late ? 'Yes' : 'No',
+        session.fine_amount || 0,
+        session.late_remarks || '',
+      ]) || []
+    );
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -246,10 +256,7 @@ export default function AssetsInspectionReports() {
                     <TableHead>Submission Date</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Employee</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Expected Qty</TableHead>
-                    <TableHead>Available Qty</TableHead>
-                    <TableHead>Condition</TableHead>
+                    <TableHead>Assets Inspected</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -257,35 +264,43 @@ export default function AssetsInspectionReports() {
                 <TableBody>
                   {filteredInspections.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
                         No inspections found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredInspections.map((inspection) => (
-                      <TableRow key={inspection.id}>
+                    filteredInspections.map((session) => (
+                      <TableRow key={session.id}>
                         <TableCell>
                           <div>
-                            <div>{format(new Date(inspection.submission_date), 'MMM d, yyyy')}</div>
+                            <div>{format(new Date(session.submission_date), 'MMM d, yyyy')}</div>
                             <div className="text-xs text-muted-foreground">
-                              {format(new Date(inspection.submission_date), 'HH:mm')}
+                              {format(new Date(session.submission_date), 'HH:mm')}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {format(new Date(inspection.inspection_date), 'MMM d, yyyy')}
-                            {inspection.is_late && (
+                            {format(new Date(session.inspection_date), 'MMM d, yyyy')}
+                            {session.is_late && (
                               <Badge variant="destructive" className="text-xs">Late</Badge>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>{inspection.employee_profile?.name || 'N/A'}</TableCell>
-                        <TableCell>{inspection.inventory_items?.name || 'N/A'}</TableCell>
-                        <TableCell>{inspection.expected_quantity}</TableCell>
-                        <TableCell>{inspection.available_quantity}</TableCell>
-                        <TableCell>{inspection.condition}</TableCell>
-                        <TableCell>{getStatusBadge(inspection.status)}</TableCell>
+                        <TableCell>{session.employee_profile?.name || 'N/A'}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {session.inspection_assets?.map((asset: any, idx: number) => (
+                              <div key={asset.id} className="text-sm">
+                                {idx + 1}. {asset.inventory_items?.name}
+                              </div>
+                            )) || 'No assets'}
+                            <div className="text-xs text-muted-foreground">
+                              {session.inspection_assets?.length || 0} asset(s)
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(session.status)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Dialog>
@@ -294,21 +309,21 @@ export default function AssetsInspectionReports() {
                                   View
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
+                              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
-                                  <DialogTitle>Inspection Details</DialogTitle>
+                                  <DialogTitle>Inspection Session Details</DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-4">
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-sm text-muted-foreground">Employee</p>
-                                      <p className="font-medium">{inspection.employee_profile?.name}</p>
+                                      <p className="font-medium">{session.employee_profile?.name}</p>
                                     </div>
                                     <div>
                                       <p className="text-sm text-muted-foreground">Submission Date</p>
                                       <div className="font-medium">
-                                        {format(new Date(inspection.submission_date), 'MMM d, yyyy HH:mm')}
-                                        {inspection.is_late && (
+                                        {format(new Date(session.submission_date), 'MMM d, yyyy HH:mm')}
+                                        {session.is_late && (
                                           <Badge variant="destructive" className="ml-2 text-xs">Late</Badge>
                                         )}
                                       </div>
@@ -316,89 +331,99 @@ export default function AssetsInspectionReports() {
                                     <div>
                                       <p className="text-sm text-muted-foreground">Inspection Date</p>
                                       <p className="font-medium">
-                                        {format(new Date(inspection.inspection_date), 'MMM d, yyyy')}
+                                        {format(new Date(session.inspection_date), 'MMM d, yyyy')}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-muted-foreground">Item</p>
-                                      <p className="font-medium">{inspection.inventory_items?.name}</p>
-                                    </div>
-                                    <div>
                                       <p className="text-sm text-muted-foreground">Status</p>
-                                      {getStatusBadge(inspection.status)}
+                                      {getStatusBadge(session.status)}
                                     </div>
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">Expected Qty</p>
-                                      <p className="font-medium">{inspection.expected_quantity}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">Available Qty</p>
-                                      <p className="font-medium">{inspection.available_quantity}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">Condition</p>
-                                      <p className="font-medium">{inspection.condition}</p>
-                                    </div>
-                                    {inspection.fine_amount > 0 && (
+                                    {session.fine_amount > 0 && (
                                       <div>
                                         <p className="text-sm text-muted-foreground">Fine Amount</p>
-                                        <p className="font-medium text-destructive">₹{inspection.fine_amount}</p>
+                                        <p className="font-medium text-destructive">₹{session.fine_amount}</p>
                                       </div>
                                     )}
                                   </div>
 
-                                  {inspection.notes && (
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">Notes</p>
-                                      <p className="mt-1">{inspection.notes}</p>
-                                    </div>
-                                  )}
-
-                                  {inspection.late_remarks && (
+                                  {session.late_remarks && (
                                     <div className="border-t pt-4">
                                       <p className="text-sm text-muted-foreground">Late Submission Remarks</p>
-                                      <p className="mt-1">{inspection.late_remarks}</p>
+                                      <p className="mt-1">{session.late_remarks}</p>
                                     </div>
                                   )}
 
-                                  <div>
+                                  <div className="border-t pt-4">
+                                    <h3 className="font-semibold mb-3">Inspected Assets ({session.inspection_assets?.length || 0})</h3>
+                                    <div className="space-y-3">
+                                      {session.inspection_assets?.map((asset: any, idx: number) => (
+                                        <div key={asset.id} className="border rounded-lg p-3">
+                                          <h4 className="font-medium mb-2">
+                                            {idx + 1}. {asset.inventory_items?.name}
+                                          </h4>
+                                          <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div>
+                                              <span className="text-muted-foreground">Expected Qty:</span>
+                                              <span className="ml-2 font-medium">{asset.expected_quantity}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Available Qty:</span>
+                                              <span className="ml-2 font-medium">{asset.available_quantity}</span>
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Condition:</span>
+                                              <span className="ml-2 font-medium">{asset.condition}</span>
+                                            </div>
+                                            {asset.notes && (
+                                              <div className="col-span-2">
+                                                <span className="text-muted-foreground">Notes:</span>
+                                                <p className="mt-1 text-sm">{asset.notes}</p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div className="border-t pt-4">
                                     <p className="text-sm text-muted-foreground mb-2">GPS Location</p>
                                     <a
-                                      href={`https://www.google.com/maps?q=${inspection.gps_latitude},${inspection.gps_longitude}`}
+                                      href={`https://www.google.com/maps?q=${session.gps_latitude},${session.gps_longitude}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="flex items-center gap-2 text-primary hover:underline"
                                     >
                                       <MapPin className="h-4 w-4" />
-                                      {inspection.gps_latitude}, {inspection.gps_longitude}
+                                      {session.gps_latitude}, {session.gps_longitude}
                                     </a>
                                   </div>
 
-                                  <div>
+                                  <div className="border-t pt-4">
                                     <p className="text-sm text-muted-foreground mb-2">Selfie</p>
                                     <img
-                                      src={inspection.selfie_url}
+                                      src={session.selfie_url}
                                       alt="Inspection selfie"
                                       className="w-full max-w-md rounded-md"
                                     />
                                   </div>
 
-                                  {inspection.status === 'Pending' && (
-                                    <div className="flex gap-2 pt-4">
+                                  {session.status === 'Pending' && (
+                                    <div className="flex gap-2 pt-4 border-t">
                                       <Button
-                                        onClick={() => handleStatusUpdate(inspection.id, 'Approved')}
+                                        onClick={() => handleStatusUpdate(session.id, 'Approved')}
                                         className="flex-1"
                                       >
                                         <CheckCircle className="h-4 w-4 mr-2" />
-                                        Approve
+                                        Approve Session
                                       </Button>
                                       <Button
-                                        onClick={() => handleStatusUpdate(inspection.id, 'Rejected')}
+                                        onClick={() => handleStatusUpdate(session.id, 'Rejected')}
                                         variant="destructive"
                                         className="flex-1"
                                       >
                                         <XCircle className="h-4 w-4 mr-2" />
-                                        Reject
+                                        Reject Session
                                       </Button>
                                     </div>
                                   )}
@@ -406,32 +431,32 @@ export default function AssetsInspectionReports() {
                               </DialogContent>
                             </Dialog>
 
-                            {inspection.is_late && (
+                            {session.is_late && (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  setFineDialog({ open: true, inspection });
-                                  setFineAmount(inspection.fine_amount?.toString() || '');
-                                  setLateRemarks(inspection.late_remarks || '');
+                                  setFineDialog({ open: true, inspection: session });
+                                  setFineAmount(session.fine_amount?.toString() || '');
+                                  setLateRemarks(session.late_remarks || '');
                                 }}
                               >
                                 Fine
                               </Button>
                             )}
 
-                            {inspection.status === 'Pending' && (
+                            {session.status === 'Pending' && (
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => handleStatusUpdate(inspection.id, 'Approved')}
+                                  onClick={() => handleStatusUpdate(session.id, 'Approved')}
                                 >
                                   <CheckCircle className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => handleStatusUpdate(inspection.id, 'Rejected')}
+                                  onClick={() => handleStatusUpdate(session.id, 'Rejected')}
                                 >
                                   <XCircle className="h-4 w-4" />
                                 </Button>

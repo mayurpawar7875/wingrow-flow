@@ -165,6 +165,111 @@ export type Database = {
           },
         ]
       }
+      inspection_assets: {
+        Row: {
+          available_quantity: number
+          condition: Database["public"]["Enums"]["inspection_condition"]
+          created_at: string
+          expected_quantity: number
+          id: string
+          item_id: string
+          notes: string | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_quantity: number
+          condition: Database["public"]["Enums"]["inspection_condition"]
+          created_at?: string
+          expected_quantity: number
+          id?: string
+          item_id: string
+          notes?: string | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_quantity?: number
+          condition?: Database["public"]["Enums"]["inspection_condition"]
+          created_at?: string
+          expected_quantity?: number
+          id?: string
+          item_id?: string
+          notes?: string | null
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspection_assets_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspection_assets_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "inspection_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inspection_sessions: {
+        Row: {
+          admin_comment: string | null
+          created_at: string
+          employee_id: string
+          fine_amount: number | null
+          gps_latitude: number
+          gps_longitude: number
+          id: string
+          inspection_date: string
+          is_late: boolean
+          late_remarks: string | null
+          reviewed_by: string | null
+          selfie_url: string
+          status: Database["public"]["Enums"]["inspection_status"]
+          submission_date: string
+          updated_at: string
+        }
+        Insert: {
+          admin_comment?: string | null
+          created_at?: string
+          employee_id: string
+          fine_amount?: number | null
+          gps_latitude: number
+          gps_longitude: number
+          id?: string
+          inspection_date?: string
+          is_late?: boolean
+          late_remarks?: string | null
+          reviewed_by?: string | null
+          selfie_url: string
+          status?: Database["public"]["Enums"]["inspection_status"]
+          submission_date?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_comment?: string | null
+          created_at?: string
+          employee_id?: string
+          fine_amount?: number | null
+          gps_latitude?: number
+          gps_longitude?: number
+          id?: string
+          inspection_date?: string
+          is_late?: boolean
+          late_remarks?: string | null
+          reviewed_by?: string | null
+          selfie_url?: string
+          status?: Database["public"]["Enums"]["inspection_status"]
+          submission_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           created_at: string

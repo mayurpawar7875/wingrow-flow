@@ -88,14 +88,22 @@ export function AssetsInspectionForm() {
       if (!user) return;
 
       const today = format(new Date(), 'yyyy-MM-dd');
-      const { data, error } = await supabase
-        .from('asset_inspections')
-        .select('*, inventory_items(name), profiles(name)')
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('inspection_sessions')
+        .select('*, inspection_assets(*, inventory_items(name))')
         .eq('employee_id', user.id)
-        .eq('inspection_date', today);
+        .eq('inspection_date', today)
+        .single();
 
-      if (!error && data && data.length > 0) {
-        setTodayInspections(data);
+      if (!sessionError && sessionData) {
+        // Convert session data to old format for display
+        const assets = sessionData.inspection_assets || [];
+        setTodayInspections(assets.map((asset: any) => ({
+          ...asset,
+          status: sessionData.status,
+          is_late: sessionData.is_late,
+          fine_amount: sessionData.fine_amount,
+        })));
       }
     };
 
@@ -141,6 +149,7 @@ export function AssetsInspectionForm() {
     if (!user) return;
 
     const isLate = !isWednesday();
+    const today = format(new Date(), 'yyyy-MM-dd');
 
     setIsSubmitting(true);
 
@@ -160,38 +169,92 @@ export function AssetsInspectionForm() {
         .from('inspection-selfies')
         .getPublicUrl(fileName);
 
-      // Insert all inspection records with the same selfie and GPS
-      const inspectionRecords = data.assets.map((asset) => {
+      // Check if session already exists for today
+      const { data: existingSession } = await supabase
+        .from('inspection_sessions')
+        .select('id')
+        .eq('employee_id', user.id)
+        .eq('inspection_date', today)
+        .single();
+
+      let sessionId: string;
+      let isUpdate = false;
+
+      if (existingSession) {
+        // Update existing session
+        sessionId = existingSession.id;
+        isUpdate = true;
+
+        const { error: updateError } = await supabase
+          .from('inspection_sessions')
+          .update({
+            selfie_url: publicUrl,
+            gps_latitude: location.latitude,
+            gps_longitude: location.longitude,
+            is_late: isLate,
+            submission_date: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', sessionId);
+
+        if (updateError) throw updateError;
+
+        // Delete existing assets for this session
+        const { error: deleteError } = await supabase
+          .from('inspection_assets')
+          .delete()
+          .eq('session_id', sessionId);
+
+        if (deleteError) throw deleteError;
+      } else {
+        // Create new session
+        const { data: newSession, error: sessionError } = await supabase
+          .from('inspection_sessions')
+          .insert({
+            employee_id: user.id,
+            inspection_date: today,
+            selfie_url: publicUrl,
+            gps_latitude: location.latitude,
+            gps_longitude: location.longitude,
+            is_late: isLate,
+            submission_date: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (sessionError) throw sessionError;
+        sessionId = newSession.id;
+      }
+
+      // Insert new asset inspections
+      const assetRecords = data.assets.map((asset) => {
         const item = getItemDetails(asset.item_id);
         return {
-          employee_id: user.id,
+          session_id: sessionId,
           item_id: asset.item_id,
           expected_quantity: item?.quantity_on_hand || 0,
           available_quantity: asset.available_quantity,
           condition: asset.condition,
           notes: asset.notes || null,
-          selfie_url: publicUrl,
-          gps_latitude: location.latitude,
-          gps_longitude: location.longitude,
-          is_late: isLate,
-          submission_date: new Date().toISOString(),
         };
       });
 
-      const { error: insertError } = await supabase
-        .from('asset_inspections')
-        .insert(inspectionRecords);
+      const { error: assetsError } = await supabase
+        .from('inspection_assets')
+        .insert(assetRecords);
 
-      if (insertError) throw insertError;
+      if (assetsError) throw assetsError;
 
       toast({
         title: 'Success',
-        description: isLate 
-          ? `Late inspection submitted for ${data.assets.length} asset(s). This will be marked as a late submission.`
-          : `Asset inspection submitted successfully for ${data.assets.length} asset(s).`,
+        description: isUpdate
+          ? `Inspection already submitted today — data updated successfully for ${data.assets.length} asset(s).`
+          : isLate 
+            ? `Late inspection submitted for ${data.assets.length} asset(s). This will be marked as a late submission.`
+            : `Asset inspection submitted successfully for ${data.assets.length} asset(s).`,
       });
 
-      queryClient.invalidateQueries({ queryKey: ['asset-inspections'] });
+      queryClient.invalidateQueries({ queryKey: ['inspection-sessions'] });
       
       // Refresh to show submitted status
       window.location.reload();

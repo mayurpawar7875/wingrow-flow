@@ -42,7 +42,17 @@ All colors MUST be HSL.
     --input: 214 32% 91%;
     --ring: 217 91% 60%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+    
+    /* Spacing scale (4/8px base) */
+    --spacing-xs: 0.25rem;  /* 4px */
+    --spacing-sm: 0.5rem;   /* 8px */
+    --spacing-md: 1rem;     /* 16px */
+    --spacing-lg: 1.5rem;   /* 24px */
+    --spacing-xl: 2rem;     /* 32px */
+    
+    /* Touch targets */
+    --touch-min: 2.75rem;   /* 44px */
 
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 98%;
@@ -107,5 +117,56 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-size: 0.9375rem; /* 15px base */
+    line-height: 1.5;
+  }
+  
+  h1 {
+    @apply text-2xl font-semibold leading-tight;
+  }
+  
+  h2 {
+    @apply text-xl font-semibold leading-snug;
+  }
+  
+  h3 {
+    @apply text-lg font-medium leading-snug;
+  }
+}
+
+@layer components {
+  /* Mobile-first responsive card */
+  .mobile-card {
+    @apply rounded-xl bg-card shadow-sm border p-4 md:p-5;
+  }
+  
+  /* Touch-friendly button */
+  .touch-button {
+    @apply min-h-[2.75rem] px-4 flex items-center justify-center;
+  }
+  
+  /* Page header */
+  .page-header {
+    @apply sticky top-0 z-10 bg-background border-b px-4 md:px-6 py-3 md:py-4 flex items-center justify-between;
+  }
+  
+  /* Section spacing */
+  .section-gap {
+    @apply space-y-4 md:space-y-6;
+  }
+  
+  /* Form input mobile */
+  .form-input-mobile {
+    @apply min-h-[2.75rem] text-base;
+  }
+  
+  /* Table card on mobile */
+  .table-card {
+    @apply block md:hidden mobile-card space-y-3;
+  }
+  
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
   }
 }

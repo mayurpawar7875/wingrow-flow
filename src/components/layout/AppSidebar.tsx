@@ -45,10 +45,16 @@ const adminNavItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpen } = useSidebar();
   const location = useLocation();
   const { userRole, signOut } = useAuth();
   const collapsed = state === 'collapsed';
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpen(false);
+    }
+  };
 
   const isActive = (path: string) => location.pathname === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
@@ -88,7 +94,7 @@ export function AppSidebar() {
               {filteredMainNav.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
+                    <NavLink to={item.url} end className={getNavCls} onClick={handleNavClick}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </NavLink>
@@ -109,7 +115,7 @@ export function AppSidebar() {
                 {filteredAdminNav.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink to={item.url} className={getNavCls}>
+                      <NavLink to={item.url} className={getNavCls} onClick={handleNavClick}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                       </NavLink>
@@ -126,7 +132,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <NavLink to="/profile" className={getNavCls}>
+              <NavLink to="/profile" className={getNavCls} onClick={handleNavClick}>
                 <User className="h-4 w-4" />
                 <span>Profile</span>
               </NavLink>
@@ -135,7 +141,10 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <button
-                onClick={signOut}
+                onClick={() => {
+                  handleNavClick();
+                  signOut();
+                }}
                 className="w-full hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               >
                 <LogOut className="h-4 w-4" />

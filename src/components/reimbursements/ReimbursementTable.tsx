@@ -73,16 +73,26 @@ export function ReimbursementTable({ reimbursements, onEdit, onDelete }: Reimbur
               <TableCell>{reimbursement.market_or_location}</TableCell>
               <TableCell>{getStatusBadge(reimbursement.status)}</TableCell>
               <TableCell>
-                {reimbursement.bill_file_url && (
+                {reimbursement.bill_file_url ? (
                   <a
                     href={reimbursement.bill_file_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-primary hover:underline"
+                    onClick={(e) => {
+                      // Verify URL is valid before opening
+                      if (!reimbursement.bill_file_url.startsWith('http')) {
+                        e.preventDefault();
+                        const { toast } = require('sonner');
+                        toast.error('Receipt not found or deleted');
+                      }
+                    }}
                   >
                     <ExternalLink className="h-4 w-4" />
                     View
                   </a>
+                ) : (
+                  <span className="text-muted-foreground text-sm">No receipt</span>
                 )}
               </TableCell>
               <TableCell className="text-right">

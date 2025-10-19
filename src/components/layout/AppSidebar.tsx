@@ -65,27 +65,23 @@ export function AppSidebar() {
   );
 
   return (
-    <Sidebar className={collapsed ? 'w-14' : 'w-64'}>
+    <Sidebar 
+      className="border-r"
+      collapsible="offcanvas"
+    >
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <Package className="h-6 w-6 text-sidebar-primary" />
-            <span className="text-lg font-semibold text-sidebar-foreground">
-              Wingrow Inventory
-            </span>
-          </div>
-        )}
-        {collapsed && (
-          <div className="flex justify-center">
-            <Package className="h-6 w-6 text-sidebar-primary" />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-sidebar-primary" />
+          <span className="text-lg font-semibold text-sidebar-foreground">
+            Wingrow Inventory
+          </span>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70">
-            {!collapsed && 'Main Menu'}
+            Main Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -94,7 +90,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end className={getNavCls}>
                       <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -106,7 +102,7 @@ export function AppSidebar() {
         {filteredAdminNav.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-sidebar-foreground/70">
-              {!collapsed && 'Administration'}
+              Administration
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -115,7 +111,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink to={item.url} className={getNavCls}>
                         <item.icon className="h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
+                        <span>{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -132,7 +128,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <NavLink to="/profile" className={getNavCls}>
                 <User className="h-4 w-4" />
-                {!collapsed && <span>Profile</span>}
+                <span>Profile</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -143,14 +139,11 @@ export function AppSidebar() {
                 className="w-full hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               >
                 <LogOut className="h-4 w-4" />
-                {!collapsed && <span>Logout</span>}
+                <span>Logout</span>
               </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="mt-4">
-          <SidebarTrigger className="w-full" />
-        </div>
       </SidebarFooter>
     </Sidebar>
   );

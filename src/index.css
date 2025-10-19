@@ -170,3 +170,11 @@ All colors MUST be HSL.
     @apply animate-pulse bg-muted rounded;
   }
 }
+
+/* Dropdown z-index fix */
+[role="menu"],
+[role="listbox"],
+.popover-content {
+  z-index: 50;
+  background: hsl(var(--background));
+}

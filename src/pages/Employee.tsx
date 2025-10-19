@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Send, List, ClipboardCheck } from 'lucide-react';
+import { LogOut, Send, List, ClipboardCheck, PackagePlus } from 'lucide-react';
 import { EmployeeRequestForm } from '@/components/employee/EmployeeRequestForm';
 import { EmployeeRequestsList } from '@/components/employee/EmployeeRequestsList';
 import { AssetsInspectionForm } from '@/components/employee/AssetsInspectionForm';
+import { NewItemRequestForm } from '@/components/employee/NewItemRequestForm';
+import { NewItemRequestsList } from '@/components/employee/NewItemRequestsList';
 
 export default function Employee() {
   const { user, signOut } = useAuth();
@@ -35,7 +37,7 @@ export default function Employee() {
       {/* Main Content */}
       <div className="container max-w-4xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
             <TabsTrigger value="submit" className="gap-2 py-3">
               <Send className="h-4 w-4" />
               <span>Submit Request</span>
@@ -44,9 +46,13 @@ export default function Employee() {
               <List className="h-4 w-4" />
               <span>My Requests</span>
             </TabsTrigger>
+            <TabsTrigger value="new-item" className="gap-2 py-3">
+              <PackagePlus className="h-4 w-4" />
+              <span>New Item</span>
+            </TabsTrigger>
             <TabsTrigger value="inspection" className="gap-2 py-3">
               <ClipboardCheck className="h-4 w-4" />
-              <span>Assets Inspection</span>
+              <span>Inspection</span>
             </TabsTrigger>
           </TabsList>
 
@@ -56,6 +62,14 @@ export default function Employee() {
 
           <TabsContent value="requests" className="space-y-4">
             <EmployeeRequestsList />
+          </TabsContent>
+
+          <TabsContent value="new-item" className="space-y-4">
+            <NewItemRequestForm onSuccess={() => setActiveTab('new-item')} />
+            <div className="mt-6">
+              <h2 className="text-xl font-semibold mb-4">My New Item Requests</h2>
+              <NewItemRequestsList />
+            </div>
           </TabsContent>
 
           <TabsContent value="inspection" className="space-y-4">

@@ -329,6 +329,80 @@ export type Database = {
         }
         Relationships: []
       }
+      new_item_requests: {
+        Row: {
+          added_to_inventory: boolean
+          admin_comment: string | null
+          attachment_url: string | null
+          category: Database["public"]["Enums"]["item_category"]
+          created_at: string
+          employee_id: string
+          estimated_price_per_unit: number | null
+          id: string
+          inventory_item_id: string | null
+          item_name: string
+          market_or_location: string
+          needed_by: string
+          quantity: number
+          reason: string
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["request_status"]
+          unit: string
+          updated_at: string
+          vendor_suggestion: string | null
+        }
+        Insert: {
+          added_to_inventory?: boolean
+          admin_comment?: string | null
+          attachment_url?: string | null
+          category: Database["public"]["Enums"]["item_category"]
+          created_at?: string
+          employee_id: string
+          estimated_price_per_unit?: number | null
+          id?: string
+          inventory_item_id?: string | null
+          item_name: string
+          market_or_location: string
+          needed_by: string
+          quantity: number
+          reason: string
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          unit: string
+          updated_at?: string
+          vendor_suggestion?: string | null
+        }
+        Update: {
+          added_to_inventory?: boolean
+          admin_comment?: string | null
+          attachment_url?: string | null
+          category?: Database["public"]["Enums"]["item_category"]
+          created_at?: string
+          employee_id?: string
+          estimated_price_per_unit?: number | null
+          id?: string
+          inventory_item_id?: string | null
+          item_name?: string
+          market_or_location?: string
+          needed_by?: string
+          quantity?: number
+          reason?: string
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["request_status"]
+          unit?: string
+          updated_at?: string
+          vendor_suggestion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "new_item_requests_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -545,6 +619,7 @@ export type Database = {
       app_role: "ADMIN" | "MANAGER" | "EMPLOYEE"
       inspection_condition: "New" | "Old"
       inspection_status: "Pending" | "Approved" | "Rejected"
+      item_category: "Packaging" | "Stationery" | "Equipment" | "Other"
       priority_level: "Low" | "Medium" | "High"
       reimbursement_category: "Travel" | "Food" | "Stationery" | "Misc"
       reimbursement_status: "Submitted" | "Approved" | "Rejected" | "Paid"
@@ -687,6 +762,7 @@ export const Constants = {
       app_role: ["ADMIN", "MANAGER", "EMPLOYEE"],
       inspection_condition: ["New", "Old"],
       inspection_status: ["Pending", "Approved", "Rejected"],
+      item_category: ["Packaging", "Stationery", "Equipment", "Other"],
       priority_level: ["Low", "Medium", "High"],
       reimbursement_category: ["Travel", "Food", "Stationery", "Misc"],
       reimbursement_status: ["Submitted", "Approved", "Rejected", "Paid"],

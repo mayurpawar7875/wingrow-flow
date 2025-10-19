@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CheckCircle, XCircle, Eye, FileText, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, FileText, ExternalLink, Package } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function NewItemRequestsManagement() {
@@ -27,11 +27,11 @@ export function NewItemRequestsManagement() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   
   // Approve form state
-  const [approveItemName, setApproveItemName] = useState('');
-  const [approveCategory, setApproveCategory] = useState('');
-  const [approveUnit, setApproveUnit] = useState('');
-  const [approvePrice, setApprovePrice] = useState(0);
-  const [createInInventory, setCreateInInventory] = useState(false);
+  const [approvedQuantity, setApprovedQuantity] = useState(0);
+  const [approvedUnitPrice, setApprovedUnitPrice] = useState<number | null>(null);
+  const [linkedInventoryItemId, setLinkedInventoryItemId] = useState<string>('new');
+  const [linkedInventoryItemName, setLinkedInventoryItemName] = useState('');
+  const [updateInventoryOnApprove, setUpdateInventoryOnApprove] = useState(true);
   const [approveComment, setApproveComment] = useState('');
   
   // Reject form state
@@ -61,6 +61,20 @@ export function NewItemRequestsManagement() {
     },
   });
 
+  const { data: inventoryItems = [] } = useQuery({
+    queryKey: ['inventory-items-autocomplete'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('id, name, unit, quantity_on_hand, item_version, price_per_item')
+        .eq('is_archived', false)
+        .order('name');
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
       request.employee_profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,11 +88,23 @@ export function NewItemRequestsManagement() {
 
   const openApproveDialog = (request: any) => {
     setSelectedRequest(request);
-    setApproveItemName(request.item_name);
-    setApproveCategory(request.category);
-    setApproveUnit(request.unit);
-    setApprovePrice(request.estimated_price_per_unit || 0);
-    setCreateInInventory(false);
+    setApprovedQuantity(request.quantity);
+    setApprovedUnitPrice(request.estimated_price_per_unit || null);
+    
+    // Try to find matching inventory item by name
+    const matchingItem = inventoryItems.find(
+      item => item.name.toLowerCase() === request.item_name.toLowerCase()
+    );
+    
+    if (matchingItem) {
+      setLinkedInventoryItemId(matchingItem.id);
+      setLinkedInventoryItemName(matchingItem.name);
+    } else {
+      setLinkedInventoryItemId('new');
+      setLinkedInventoryItemName(request.item_name);
+    }
+    
+    setUpdateInventoryOnApprove(true);
     setApproveComment('');
     setApproveDialogOpen(true);
   };
@@ -97,53 +123,131 @@ export function NewItemRequestsManagement() {
   const handleApprove = async () => {
     if (!selectedRequest || !user) return;
 
+    // Validation
+    if (approvedQuantity <= 0 || !Number.isInteger(approvedQuantity)) {
+      toast({
+        title: 'Error',
+        description: 'Approved quantity must be a positive integer',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Idempotency check
+    if (selectedRequest.added_to_inventory) {
+      toast({
+        title: 'Error',
+        description: 'This request has already been processed. Inventory was already updated.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
-      let inventoryItemId = null;
+      let finalInventoryItemId = linkedInventoryItemId;
+      let itemName = linkedInventoryItemName;
 
-      // Create inventory item if checkbox is selected
-      if (createInInventory) {
-        const { data: inventoryItem, error: inventoryError } = await supabase
-          .from('inventory_items')
-          .insert({
-            name: approveItemName,
-            sku: `AUTO-${Date.now()}`,
-            unit: approveUnit,
-            quantity_on_hand: 0,
-            price_per_item: approvePrice,
-            reorder_level: 10,
-            max_level: 100,
-            created_by: user.id,
-            tags: [approveCategory],
-          })
-          .select()
-          .single();
+      // Handle inventory update if checkbox is selected
+      if (updateInventoryOnApprove) {
+        if (linkedInventoryItemId === 'new') {
+          // Create new inventory item
+          const { data: newItem, error: createError } = await supabase
+            .from('inventory_items')
+            .insert({
+              name: linkedInventoryItemName,
+              sku: `AUTO-${Date.now()}`,
+              unit: selectedRequest.unit,
+              quantity_on_hand: approvedQuantity,
+              price_per_item: approvedUnitPrice || 0,
+              reorder_level: null,
+              is_archived: false,
+              created_by: user.id,
+              tags: [selectedRequest.category],
+            })
+            .select()
+            .single();
 
-        if (inventoryError) throw inventoryError;
-        inventoryItemId = inventoryItem.id;
+          if (createError) throw createError;
+          finalInventoryItemId = newItem.id;
+          itemName = newItem.name;
+
+          // Create stock movement for new item
+          await supabase.from('inventory_transactions').insert({
+            item_id: newItem.id,
+            type: 'Inbound',
+            quantity: approvedQuantity,
+            prev_quantity: 0,
+            new_quantity: approvedQuantity,
+            reason: `New item request approved: ${selectedRequest.item_name}`,
+            reference: selectedRequest.id,
+            performed_by: user.id,
+          });
+        } else {
+          // Update existing inventory item with optimistic locking
+          const existingItem = inventoryItems.find(item => item.id === linkedInventoryItemId);
+          if (!existingItem) throw new Error('Inventory item not found');
+
+          const { data: updateResult, error: updateError } = await supabase.rpc(
+            'update_stock_with_version',
+            {
+              _item_id: linkedInventoryItemId,
+              _current_version: existingItem.item_version,
+              _quantity_delta: approvedQuantity,
+              _movement_type: 'Inbound',
+              _reason: `New item request approved: ${selectedRequest.item_name}`,
+              _performed_by: user.id,
+              _reference_id: selectedRequest.id,
+            }
+          );
+
+          if (updateError) {
+            if (updateError.code === 'P0001') {
+              throw new Error('Version conflict: Item was updated by another user. Please refresh and try again.');
+            } else if (updateError.code === 'P0002') {
+              throw new Error('Insufficient inventory');
+            }
+            throw updateError;
+          }
+
+          // Update price if provided
+          if (approvedUnitPrice !== null && approvedUnitPrice > 0) {
+            await supabase
+              .from('inventory_items')
+              .update({ price_per_item: approvedUnitPrice })
+              .eq('id', linkedInventoryItemId);
+          }
+
+          itemName = existingItem.name;
+        }
       }
 
-      // Update request
-      const { error: updateError } = await supabase
+      // Update the new item request
+      const { error: requestUpdateError } = await supabase
         .from('new_item_requests')
         .update({
           status: 'Approved',
           reviewed_by: user.id,
           admin_comment: approveComment || null,
-          added_to_inventory: createInInventory,
-          inventory_item_id: inventoryItemId,
+          added_to_inventory: updateInventoryOnApprove,
+          inventory_item_id: finalInventoryItemId !== 'new' ? finalInventoryItemId : null,
+          approved_quantity: approvedQuantity,
+          approved_at: new Date().toISOString(),
+          approved_unit_price: approvedUnitPrice,
         })
         .eq('id', selectedRequest.id);
 
-      if (updateError) throw updateError;
+      if (requestUpdateError) throw requestUpdateError;
 
       toast({
         title: 'Success',
-        description: createInInventory
-          ? 'Request approved and item added to inventory.'
+        description: updateInventoryOnApprove
+          ? `Inventory updated: +${approvedQuantity} to ${itemName}`
           : 'Request approved successfully.',
       });
 
       queryClient.invalidateQueries({ queryKey: ['new-item-requests-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-items-autocomplete'] });
       setApproveDialogOpen(false);
     } catch (error: any) {
       console.error('Error approving request:', error);
@@ -250,6 +354,7 @@ export function NewItemRequestsManagement() {
                   <TableHead>Est. Price</TableHead>
                   <TableHead>Needed By</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Inventory</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -276,6 +381,14 @@ export function NewItemRequestsManagement() {
                       </TableCell>
                       <TableCell>{format(new Date(request.needed_by), 'MMM d')}</TableCell>
                       <TableCell>{getStatusBadge(request.status)}</TableCell>
+                      <TableCell>
+                        {request.added_to_inventory && (
+                          <Badge variant="default" className="gap-1">
+                            <Package className="h-3 w-3" />
+                            Updated
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button
@@ -320,56 +433,76 @@ export function NewItemRequestsManagement() {
             <DialogTitle>Approve New Item Request</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="approve-item-name">Item Name</Label>
-              <Input
-                id="approve-item-name"
-                value={approveItemName}
-                onChange={(e) => setApproveItemName(e.target.value)}
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="approve-category">Category</Label>
-                <Select value={approveCategory} onValueChange={setApproveCategory}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Packaging">Packaging</SelectItem>
-                    <SelectItem value="Stationery">Stationery</SelectItem>
-                    <SelectItem value="Equipment">Equipment</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="approved-quantity">Approved Quantity *</Label>
+                <Input
+                  id="approved-quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={approvedQuantity}
+                  onChange={(e) => setApprovedQuantity(parseInt(e.target.value) || 0)}
+                />
               </div>
               <div>
-                <Label htmlFor="approve-unit">Unit</Label>
+                <Label htmlFor="approved-unit-price">Unit Price (Optional)</Label>
                 <Input
-                  id="approve-unit"
-                  value={approveUnit}
-                  onChange={(e) => setApproveUnit(e.target.value)}
+                  id="approved-unit-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={approvedUnitPrice || ''}
+                  onChange={(e) => setApprovedUnitPrice(e.target.value ? parseFloat(e.target.value) : null)}
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="approve-price">Price per Unit</Label>
-              <Input
-                id="approve-price"
-                type="number"
-                step="0.01"
-                value={approvePrice}
-                onChange={(e) => setApprovePrice(parseFloat(e.target.value) || 0)}
-              />
+              <Label htmlFor="linked-inventory-item">Link to Inventory Item *</Label>
+              <Select 
+                value={linkedInventoryItemId} 
+                onValueChange={(value) => {
+                  setLinkedInventoryItemId(value);
+                  if (value !== 'new') {
+                    const item = inventoryItems.find(i => i.id === value);
+                    if (item) setLinkedInventoryItemName(item.name);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">
+                    <span className="font-medium">Create New Item: {selectedRequest?.item_name}</span>
+                  </SelectItem>
+                  {inventoryItems.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name} ({item.quantity_on_hand} {item.unit})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {linkedInventoryItemId === 'new' && (
+                <div className="mt-2">
+                  <Label htmlFor="new-item-name">New Item Name</Label>
+                  <Input
+                    id="new-item-name"
+                    value={linkedInventoryItemName}
+                    onChange={(e) => setLinkedInventoryItemName(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="create-inventory"
-                checked={createInInventory}
-                onCheckedChange={(checked) => setCreateInInventory(checked as boolean)}
+                id="update-inventory"
+                checked={updateInventoryOnApprove}
+                onCheckedChange={(checked) => setUpdateInventoryOnApprove(checked as boolean)}
               />
-              <Label htmlFor="create-inventory" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Create in Inventory now
+              <Label htmlFor="update-inventory" className="text-sm font-medium leading-none">
+                Update Inventory on Approve
               </Label>
             </div>
             <div>

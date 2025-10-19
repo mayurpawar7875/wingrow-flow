@@ -333,6 +333,9 @@ export type Database = {
         Row: {
           added_to_inventory: boolean
           admin_comment: string | null
+          approved_at: string | null
+          approved_quantity: number | null
+          approved_unit_price: number | null
           attachment_url: string | null
           category: Database["public"]["Enums"]["item_category"]
           created_at: string
@@ -354,6 +357,9 @@ export type Database = {
         Insert: {
           added_to_inventory?: boolean
           admin_comment?: string | null
+          approved_at?: string | null
+          approved_quantity?: number | null
+          approved_unit_price?: number | null
           attachment_url?: string | null
           category: Database["public"]["Enums"]["item_category"]
           created_at?: string
@@ -375,6 +381,9 @@ export type Database = {
         Update: {
           added_to_inventory?: boolean
           admin_comment?: string | null
+          approved_at?: string | null
+          approved_quantity?: number | null
+          approved_unit_price?: number | null
           attachment_url?: string | null
           category?: Database["public"]["Enums"]["item_category"]
           created_at?: string

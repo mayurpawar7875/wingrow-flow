@@ -35,7 +35,6 @@ const mainNavItems = [
   { title: 'Item Requests', url: '/requests', icon: FileText, roles: ['EMPLOYEE', 'MANAGER', 'ADMIN'] },
   { title: 'Reimbursements', url: '/reimbursements', icon: Receipt, roles: ['EMPLOYEE', 'MANAGER', 'ADMIN'] },
   { title: 'Inventory', url: '/inventory', icon: Package, roles: ['EMPLOYEE', 'MANAGER', 'ADMIN'] },
-  { title: 'Vendors', url: '/vendors', icon: Store, roles: ['MANAGER', 'ADMIN'] },
   { title: 'Reports', url: '/reports', icon: BarChart3, roles: ['MANAGER', 'ADMIN'] },
 ];
 

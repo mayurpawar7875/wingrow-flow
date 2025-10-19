@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   loading: boolean;
+  signingOut: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -19,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -139,8 +141,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    try {
+      setSigningOut(true);
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Reset state
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      
+      // Navigate to auth page
+      navigate("/auth");
+      
+      // Show success toast
+      const { toast } = await import("@/hooks/use-toast");
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -150,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         userRole,
         loading,
+        signingOut,
         signIn,
         signOut,
       }}

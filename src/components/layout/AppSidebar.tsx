@@ -47,7 +47,7 @@ const adminNavItems = [
 export function AppSidebar() {
   const { state, isMobile, setOpen } = useSidebar();
   const location = useLocation();
-  const { userRole, signOut } = useAuth();
+  const { userRole, signOut, signingOut } = useAuth();
   const collapsed = state === 'collapsed';
 
   const handleNavClick = () => {
@@ -145,10 +145,11 @@ export function AppSidebar() {
                   handleNavClick();
                   signOut();
                 }}
-                className="w-full hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                disabled={signingOut}
+                className="w-full hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground disabled:opacity-50 disabled:pointer-events-none"
               >
                 <LogOut className="h-4 w-4" />
-                <span>Logout</span>
+                <span>{signingOut ? "Logging out..." : "Logout"}</span>
               </button>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -1,0 +1,337 @@
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { Download, MapPin, Image, CheckCircle, XCircle } from 'lucide-react';
+
+export default function AssetsInspectionReports() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState('');
+
+  const { data: inspections = [], refetch } = useQuery({
+    queryKey: ['asset-inspections-admin'],
+    queryFn: async () => {
+      const { data: inspectionsData, error } = await supabase
+        .from('asset_inspections')
+        .select('*, inventory_items(name, unit)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch profiles separately
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name');
+
+      const profilesMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+      return inspectionsData?.map(inspection => ({
+        ...inspection,
+        employee_profile: profilesMap.get(inspection.employee_id)
+      })) || [];
+    },
+  });
+
+  const filteredInspections = inspections.filter((inspection) => {
+    const matchesSearch =
+      inspection.employee_profile?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inspection.inventory_items?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'all' || inspection.status === statusFilter;
+
+    const matchesDate = !dateFilter || inspection.inspection_date === dateFilter;
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  const handleStatusUpdate = async (inspectionId: string, newStatus: 'Approved' | 'Rejected') => {
+    try {
+      const { error } = await supabase
+        .from('asset_inspections')
+        .update({ status: newStatus })
+        .eq('id', inspectionId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: `Inspection ${newStatus.toLowerCase()} successfully.`,
+      });
+
+      refetch();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update inspection',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      'Date',
+      'Employee Name',
+      'Item Name',
+      'Expected Quantity',
+      'Available Quantity',
+      'Condition',
+      'Notes',
+      'GPS Latitude',
+      'GPS Longitude',
+      'Status',
+    ];
+
+    const rows = filteredInspections.map((inspection) => [
+      format(new Date(inspection.inspection_date), 'yyyy-MM-dd'),
+      inspection.employee_profile?.name || 'N/A',
+      inspection.inventory_items?.name || 'N/A',
+      inspection.expected_quantity,
+      inspection.available_quantity,
+      inspection.condition,
+      inspection.notes || '',
+      inspection.gps_latitude,
+      inspection.gps_longitude,
+      inspection.status,
+    ]);
+
+    const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `asset-inspections-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      Pending: 'secondary',
+      Approved: 'default',
+      Rejected: 'destructive',
+    };
+    return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
+  };
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Assets Inspection Reports</h1>
+          <Button onClick={exportToCSV} variant="outline">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Input
+                  placeholder="Search by employee or item..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Expected Qty</TableHead>
+                    <TableHead>Available Qty</TableHead>
+                    <TableHead>Condition</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInspections.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground">
+                        No inspections found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredInspections.map((inspection) => (
+                      <TableRow key={inspection.id}>
+                        <TableCell>
+                          {format(new Date(inspection.inspection_date), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell>{inspection.employee_profile?.name || 'N/A'}</TableCell>
+                        <TableCell>{inspection.inventory_items?.name || 'N/A'}</TableCell>
+                        <TableCell>{inspection.expected_quantity}</TableCell>
+                        <TableCell>{inspection.available_quantity}</TableCell>
+                        <TableCell>{inspection.condition}</TableCell>
+                        <TableCell>{getStatusBadge(inspection.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  View
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Inspection Details</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Employee</p>
+                                      <p className="font-medium">{inspection.employee_profile?.name}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Date</p>
+                                      <p className="font-medium">
+                                        {format(new Date(inspection.inspection_date), 'MMM d, yyyy')}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Item</p>
+                                      <p className="font-medium">{inspection.inventory_items?.name}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Status</p>
+                                      {getStatusBadge(inspection.status)}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Expected Qty</p>
+                                      <p className="font-medium">{inspection.expected_quantity}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Available Qty</p>
+                                      <p className="font-medium">{inspection.available_quantity}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Condition</p>
+                                      <p className="font-medium">{inspection.condition}</p>
+                                    </div>
+                                  </div>
+
+                                  {inspection.notes && (
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Notes</p>
+                                      <p className="mt-1">{inspection.notes}</p>
+                                    </div>
+                                  )}
+
+                                  <div>
+                                    <p className="text-sm text-muted-foreground mb-2">GPS Location</p>
+                                    <a
+                                      href={`https://www.google.com/maps?q=${inspection.gps_latitude},${inspection.gps_longitude}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 text-primary hover:underline"
+                                    >
+                                      <MapPin className="h-4 w-4" />
+                                      {inspection.gps_latitude}, {inspection.gps_longitude}
+                                    </a>
+                                  </div>
+
+                                  <div>
+                                    <p className="text-sm text-muted-foreground mb-2">Selfie</p>
+                                    <img
+                                      src={inspection.selfie_url}
+                                      alt="Inspection selfie"
+                                      className="w-full max-w-md rounded-md"
+                                    />
+                                  </div>
+
+                                  {inspection.status === 'Pending' && (
+                                    <div className="flex gap-2 pt-4">
+                                      <Button
+                                        onClick={() => handleStatusUpdate(inspection.id, 'Approved')}
+                                        className="flex-1"
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        onClick={() => handleStatusUpdate(inspection.id, 'Rejected')}
+                                        variant="destructive"
+                                        className="flex-1"
+                                      >
+                                        <XCircle className="h-4 w-4 mr-2" />
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+
+                            {inspection.status === 'Pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStatusUpdate(inspection.id, 'Approved')}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleStatusUpdate(inspection.id, 'Rejected')}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}

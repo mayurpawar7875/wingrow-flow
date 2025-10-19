@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LogOut, Send, List } from 'lucide-react';
+import { LogOut, Send, List, ClipboardCheck } from 'lucide-react';
 import { EmployeeRequestForm } from '@/components/employee/EmployeeRequestForm';
 import { EmployeeRequestsList } from '@/components/employee/EmployeeRequestsList';
+import { AssetsInspectionForm } from '@/components/employee/AssetsInspectionForm';
 
 export default function Employee() {
   const { user, signOut } = useAuth();
@@ -34,7 +35,7 @@ export default function Employee() {
       {/* Main Content */}
       <div className="container max-w-4xl mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 h-auto">
+          <TabsList className="grid w-full grid-cols-3 h-auto">
             <TabsTrigger value="submit" className="gap-2 py-3">
               <Send className="h-4 w-4" />
               <span>Submit Request</span>
@@ -42,6 +43,10 @@ export default function Employee() {
             <TabsTrigger value="requests" className="gap-2 py-3">
               <List className="h-4 w-4" />
               <span>My Requests</span>
+            </TabsTrigger>
+            <TabsTrigger value="inspection" className="gap-2 py-3">
+              <ClipboardCheck className="h-4 w-4" />
+              <span>Assets Inspection</span>
             </TabsTrigger>
           </TabsList>
 
@@ -51,6 +56,10 @@ export default function Employee() {
 
           <TabsContent value="requests" className="space-y-4">
             <EmployeeRequestsList />
+          </TabsContent>
+
+          <TabsContent value="inspection" className="space-y-4">
+            <AssetsInspectionForm />
           </TabsContent>
         </Tabs>
       </div>

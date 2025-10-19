@@ -18,6 +18,7 @@ import Admin from "./pages/Admin";
 import Employees from "./pages/Employees";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import AssetsInspectionReports from "./pages/AssetsInspectionReports";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,14 @@ const App = () => (
               <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
                 <AppLayout>
                   <Reports />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/assets-inspection-reports" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AppLayout>
+                  <AssetsInspectionReports />
                 </AppLayout>
               </ProtectedRoute>
             } />

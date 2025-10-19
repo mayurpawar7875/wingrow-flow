@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_inspections: {
+        Row: {
+          admin_comment: string | null
+          available_quantity: number
+          condition: Database["public"]["Enums"]["inspection_condition"]
+          created_at: string
+          employee_id: string
+          expected_quantity: number
+          gps_latitude: number
+          gps_longitude: number
+          id: string
+          inspection_date: string
+          item_id: string
+          notes: string | null
+          reviewed_by: string | null
+          selfie_url: string
+          status: Database["public"]["Enums"]["inspection_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_comment?: string | null
+          available_quantity: number
+          condition: Database["public"]["Enums"]["inspection_condition"]
+          created_at?: string
+          employee_id: string
+          expected_quantity: number
+          gps_latitude: number
+          gps_longitude: number
+          id?: string
+          inspection_date?: string
+          item_id: string
+          notes?: string | null
+          reviewed_by?: string | null
+          selfie_url: string
+          status?: Database["public"]["Enums"]["inspection_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_comment?: string | null
+          available_quantity?: number
+          condition?: Database["public"]["Enums"]["inspection_condition"]
+          created_at?: string
+          employee_id?: string
+          expected_quantity?: number
+          gps_latitude?: number
+          gps_longitude?: number
+          id?: string
+          inspection_date?: string
+          item_id?: string
+          notes?: string | null
+          reviewed_by?: string | null
+          selfie_url?: string
+          status?: Database["public"]["Enums"]["inspection_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_inspections_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -478,6 +543,8 @@ export type Database = {
     }
     Enums: {
       app_role: "ADMIN" | "MANAGER" | "EMPLOYEE"
+      inspection_condition: "New" | "Old"
+      inspection_status: "Pending" | "Approved" | "Rejected"
       priority_level: "Low" | "Medium" | "High"
       reimbursement_category: "Travel" | "Food" | "Stationery" | "Misc"
       reimbursement_status: "Submitted" | "Approved" | "Rejected" | "Paid"
@@ -618,6 +685,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["ADMIN", "MANAGER", "EMPLOYEE"],
+      inspection_condition: ["New", "Old"],
+      inspection_status: ["Pending", "Approved", "Rejected"],
       priority_level: ["Low", "Medium", "High"],
       reimbursement_category: ["Travel", "Food", "Stationery", "Misc"],
       reimbursement_status: ["Submitted", "Approved", "Rejected", "Paid"],

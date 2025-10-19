@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Users,
+  ClipboardCheck,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -40,6 +41,7 @@ const mainNavItems = [
 
 const adminNavItems = [
   { title: 'Onboarded Employees', url: '/employees', icon: Users, roles: ['ADMIN'] },
+  { title: 'Assets Inspection', url: '/assets-inspection-reports', icon: ClipboardCheck, roles: ['ADMIN'] },
   { title: 'Admin', url: '/admin', icon: Settings, roles: ['ADMIN'] },
 ];
 

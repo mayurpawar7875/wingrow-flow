@@ -45,15 +45,13 @@ const adminNavItems = [
 ];
 
 export function AppSidebar() {
-  const { state, isMobile, setOpen } = useSidebar();
+  const { state, closeSidebar } = useSidebar();
   const location = useLocation();
   const { userRole, signOut, signingOut } = useAuth();
   const collapsed = state === 'collapsed';
 
   const handleNavClick = () => {
-    if (isMobile) {
-      setOpen(false);
-    }
+    closeSidebar();
   };
 
   const isActive = (path: string) => location.pathname === path;

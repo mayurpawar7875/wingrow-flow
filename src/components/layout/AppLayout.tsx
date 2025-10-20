@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { MobileAppBar } from './MobileAppBar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -28,8 +29,10 @@ function AppLayoutInner({ children }: AppLayoutProps) {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const isMobile = useIsMobile();
+  
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={!isMobile}>
       <AppLayoutInner>{children}</AppLayoutInner>
     </SidebarProvider>
   );

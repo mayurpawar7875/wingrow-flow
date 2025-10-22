@@ -1,11 +1,23 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema
+const employeeSchema = z.object({
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters'),
+  email: z.string().trim().email('Invalid email format').toLowerCase().max(255, 'Email must be less than 255 characters'),
+  phone_number: z.string().trim().regex(/^[0-9+\-\s()]{10,20}$/, 'Invalid phone number format'),
+  designation: z.string().trim().min(2, 'Designation must be at least 2 characters').max(100, 'Designation must be less than 100 characters'),
+  location: z.enum(['Pune', 'Mumbai'], { errorMap: () => ({ message: 'Location must be either Pune or Mumbai' }) }),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(100, 'Password must be less than 100 characters'),
+  role: z.enum(['ADMIN', 'MANAGER', 'EMPLOYEE'], { errorMap: () => ({ message: 'Role must be ADMIN, MANAGER, or EMPLOYEE' }) }),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,23 +33,31 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { name, email, phone_number, designation, location, password, role } = body ?? {};
 
-    console.log('Creating employee with email:', email);
+    // Validate and sanitize input using Zod schema
+    let validatedData;
+    try {
+      validatedData = employeeSchema.parse(body);
+      console.log('Creating employee with email:', validatedData.email);
+    } catch (validationError) {
+      console.error('Input validation failed:', validationError);
+      
+      if (validationError instanceof z.ZodError) {
+        const errorMessages = validationError.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ');
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: 'Invalid input data',
+          errors: errorMessages
+        }), { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      throw validationError;
+    }
 
-    // Basic validation
-    if (!name || !email || !phone_number || !designation || !location || !password || !role) {
-      return new Response(JSON.stringify({ success: false, message: 'Missing required fields' }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    if (!['Pune', 'Mumbai'].includes(location)) {
-      return new Response(JSON.stringify({ success: false, message: 'Invalid location' }), { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    const { name, email, phone_number, designation, location, password, role } = validatedData;
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -189,124 +189,176 @@ export default function AssetsInspectionReports() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Assets Inspection Reports</h1>
-          <Button onClick={exportToCSV} variant="outline">
+      <div className="container max-w-[1200px] mx-auto px-4 md:px-6 py-4 md:py-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Assets Inspection Reports</h1>
+          <Button onClick={exportToCSV} variant="outline" className="min-h-[44px]">
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <Input
-                  placeholder="Search by employee or item..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Approved">Approved</SelectItem>
-                    <SelectItem value="Rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Select value={lateFilter} onValueChange={setLateFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filter by submission" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Submissions</SelectItem>
-                    <SelectItem value="ontime">On-Time</SelectItem>
-                    <SelectItem value="late">Late Submissions</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                />
-              </div>
+        {/* Filters Card */}
+        <Card className="rounded-xl border shadow-sm mb-6">
+          <CardContent className="p-4 md:p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <Input
+                placeholder="Search by employee or item..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-11 w-full"
+              />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-11 w-full">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={lateFilter} onValueChange={setLateFilter}>
+                <SelectTrigger className="h-11 w-full">
+                  <SelectValue placeholder="Filter by submission" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Submissions</SelectItem>
+                  <SelectItem value="ontime">On-Time</SelectItem>
+                  <SelectItem value="late">Late Submissions</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="h-11 w-full"
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+        {/* Table Section */}
+        <Card className="rounded-xl border shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/40">
+                <TableRow>
+                  <TableHead className="px-4 py-3">Submission Date</TableHead>
+                  <TableHead className="px-4 py-3">Date</TableHead>
+                  <TableHead className="px-4 py-3">Employee</TableHead>
+                  <TableHead className="px-4 py-3">Location</TableHead>
+                  <TableHead className="px-4 py-3">Asset</TableHead>
+                  <TableHead className="px-4 py-3">Expected</TableHead>
+                  <TableHead className="px-4 py-3">Available</TableHead>
+                  <TableHead className="px-4 py-3">Condition</TableHead>
+                  <TableHead className="px-4 py-3">Notes</TableHead>
+                  <TableHead className="px-4 py-3">Selfie</TableHead>
+                  <TableHead className="px-4 py-3">GPS</TableHead>
+                  <TableHead className="px-4 py-3">Status</TableHead>
+                  <TableHead className="px-4 py-3 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInspections.length === 0 ? (
                   <TableRow>
-                    <TableHead>Submission Date</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Assets Inspected</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableCell colSpan={13} className="text-center text-muted-foreground px-4 py-8">
+                      No inspections found
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredInspections.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No inspections found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredInspections.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell>
-                          <div>
-                            <div>{format(new Date(session.submission_date), 'MMM d, yyyy')}</div>
+                ) : (
+                  filteredInspections.flatMap((session) =>
+                    session.inspection_assets?.map((asset: any, assetIdx: number) => (
+                      <TableRow 
+                        key={`${session.id}-${asset.id}`}
+                        className="hover:bg-muted/30 [&:nth-child(even)]:bg-muted/10"
+                      >
+                        <TableCell className="px-4 py-3">
+                          <div className="whitespace-nowrap">
+                            <div className="text-sm">{format(new Date(session.submission_date), 'MMM d, yyyy')}</div>
                             <div className="text-xs text-muted-foreground">
                               {format(new Date(session.submission_date), 'HH:mm')}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {format(new Date(session.inspection_date), 'MMM d, yyyy')}
+                        <TableCell className="px-4 py-3">
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <span className="text-sm">{format(new Date(session.inspection_date), 'MMM d, yyyy')}</span>
                             {session.is_late && (
-                              <Badge variant="destructive" className="text-xs">Late</Badge>
+                              <Badge variant="destructive" className="text-xs px-2 py-0.5 rounded-full">
+                                Late
+                              </Badge>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>{session.employee_profile?.name || 'N/A'}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            {session.inspection_assets?.map((asset: any, idx: number) => (
-                              <div key={asset.id} className="text-sm">
-                                {idx + 1}. {asset.inventory_items?.name}
-                              </div>
-                            )) || 'No assets'}
-                            <div className="text-xs text-muted-foreground">
-                              {session.inspection_assets?.length || 0} asset(s)
-                            </div>
-                          </div>
+                        <TableCell className="px-4 py-3 text-sm">
+                          {session.employee_profile?.name || 'N/A'}
                         </TableCell>
-                        <TableCell>{getStatusBadge(session.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
+                        <TableCell className="px-4 py-3 text-sm">
+                          <a
+                            href={`https://www.google.com/maps?q=${session.gps_latitude},${session.gps_longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline whitespace-nowrap"
+                          >
+                            <MapPin className="h-3 w-3" />
+                            Map
+                          </a>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm">
+                          {asset.inventory_items?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm text-center">
+                          {asset.expected_quantity}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm text-center">
+                          {asset.available_quantity}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm">
+                          {asset.condition}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm max-w-[200px]">
+                          <span className="line-clamp-2">{asset.notes || '-'}</span>
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          {session.selfie_url && (
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button variant="outline" size="sm">
-                                  View
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 min-h-[44px] min-w-[44px]">
+                                  <Image className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Inspection Selfie</DialogTitle>
+                                </DialogHeader>
+                                <img
+                                  src={session.selfie_url}
+                                  alt="Inspection selfie"
+                                  className="w-full rounded-lg"
+                                />
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm">
+                          {session.gps_latitude && session.gps_longitude ? (
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {session.gps_latitude.toFixed(4)}, {session.gps_longitude.toFixed(4)}
+                            </span>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          {getStatusBadge(session.status)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <div className="flex gap-2 justify-end flex-wrap">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="min-h-[44px]">
+                                  Details
                                 </Button>
                               </DialogTrigger>
                               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -356,28 +408,28 @@ export default function AssetsInspectionReports() {
                                   <div className="border-t pt-4">
                                     <h3 className="font-semibold mb-3">Inspected Assets ({session.inspection_assets?.length || 0})</h3>
                                     <div className="space-y-3">
-                                      {session.inspection_assets?.map((asset: any, idx: number) => (
-                                        <div key={asset.id} className="border rounded-lg p-3">
+                                      {session.inspection_assets?.map((assetDetail: any, idx: number) => (
+                                        <div key={assetDetail.id} className="border rounded-lg p-3">
                                           <h4 className="font-medium mb-2">
-                                            {idx + 1}. {asset.inventory_items?.name}
+                                            {idx + 1}. {assetDetail.inventory_items?.name}
                                           </h4>
                                           <div className="grid grid-cols-2 gap-2 text-sm">
                                             <div>
                                               <span className="text-muted-foreground">Expected Qty:</span>
-                                              <span className="ml-2 font-medium">{asset.expected_quantity}</span>
+                                              <span className="ml-2 font-medium">{assetDetail.expected_quantity}</span>
                                             </div>
                                             <div>
                                               <span className="text-muted-foreground">Available Qty:</span>
-                                              <span className="ml-2 font-medium">{asset.available_quantity}</span>
+                                              <span className="ml-2 font-medium">{assetDetail.available_quantity}</span>
                                             </div>
                                             <div>
                                               <span className="text-muted-foreground">Condition:</span>
-                                              <span className="ml-2 font-medium">{asset.condition}</span>
+                                              <span className="ml-2 font-medium">{assetDetail.condition}</span>
                                             </div>
-                                            {asset.notes && (
+                                            {assetDetail.notes && (
                                               <div className="col-span-2">
                                                 <span className="text-muted-foreground">Notes:</span>
-                                                <p className="mt-1 text-sm">{asset.notes}</p>
+                                                <p className="mt-1 text-sm">{assetDetail.notes}</p>
                                               </div>
                                             )}
                                           </div>
@@ -404,26 +456,29 @@ export default function AssetsInspectionReports() {
                                     <img
                                       src={session.selfie_url}
                                       alt="Inspection selfie"
-                                      className="w-full max-w-md rounded-md"
+                                      className="w-full rounded-lg max-w-md"
                                     />
                                   </div>
 
                                   {session.status === 'Pending' && (
-                                    <div className="flex gap-2 pt-4 border-t">
+                                    <div className="border-t pt-4 flex gap-3 justify-end">
                                       <Button
-                                        onClick={() => handleStatusUpdate(session.id, 'Approved')}
-                                        className="flex-1"
+                                        variant="default"
+                                        onClick={() => {
+                                          handleStatusUpdate(session.id, 'Approved');
+                                        }}
                                       >
                                         <CheckCircle className="h-4 w-4 mr-2" />
-                                        Approve Session
+                                        Approve
                                       </Button>
                                       <Button
-                                        onClick={() => handleStatusUpdate(session.id, 'Rejected')}
                                         variant="destructive"
-                                        className="flex-1"
+                                        onClick={() => {
+                                          handleStatusUpdate(session.id, 'Rejected');
+                                        }}
                                       >
                                         <XCircle className="h-4 w-4 mr-2" />
-                                        Reject Session
+                                        Reject
                                       </Button>
                                     </div>
                                   )}
@@ -431,7 +486,30 @@ export default function AssetsInspectionReports() {
                               </DialogContent>
                             </Dialog>
 
-                            {session.is_late && (
+                            {session.status === 'Pending' && assetIdx === 0 && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => handleStatusUpdate(session.id, 'Approved')}
+                                  className="min-h-[44px]"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleStatusUpdate(session.id, 'Rejected')}
+                                  className="min-h-[44px]"
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+
+                            {session.is_late && assetIdx === 0 && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -440,39 +518,23 @@ export default function AssetsInspectionReports() {
                                   setFineAmount(session.fine_amount?.toString() || '');
                                   setLateRemarks(session.late_remarks || '');
                                 }}
+                                className="min-h-[44px]"
                               >
                                 Fine
                               </Button>
                             )}
-
-                            {session.status === 'Pending' && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(session.id, 'Approved')}
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleStatusUpdate(session.id, 'Rejected')}
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
+                    )) || []
+                  )
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </Card>
 
+        {/* Fine Dialog */}
         <Dialog open={fineDialog.open} onOpenChange={(open) => {
           if (!open) {
             setFineDialog({ open: false, inspection: null });

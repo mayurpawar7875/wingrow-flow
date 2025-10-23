@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, roles: ['EMPLOYEE', 'MANAGER', 'ADMIN'] },
@@ -48,10 +49,12 @@ export function AppSidebar() {
   const { state, closeSidebar } = useSidebar();
   const location = useLocation();
   const { userRole, signOut, signingOut } = useAuth();
-  const collapsed = state === 'collapsed';
+  const isMobile = useIsMobile();
 
   const handleNavClick = () => {
-    closeSidebar();
+    if (isMobile) {
+      closeSidebar();
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -70,8 +73,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-r"
-      collapsible="icon"
+      className="border-r border-sidebar-border"
+      collapsible={isMobile ? "offcanvas" : "icon"}
     >
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2">

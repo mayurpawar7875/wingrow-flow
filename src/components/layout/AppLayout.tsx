@@ -12,11 +12,11 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
-      <MobileAppBar onMenuClick={toggleSidebar} />
+    <div className="min-h-screen flex w-full bg-background">
+      <AppSidebar />
       
-      <div className="flex flex-1 overflow-hidden">
-        <AppSidebar />
+      <div className="flex flex-col flex-1 min-w-0">
+        <MobileAppBar onMenuClick={toggleSidebar} />
         
         <main className="flex-1 overflow-auto">
           <div className="container max-w-[1200px] py-4 md:py-6 px-4 md:px-5">

@@ -19,6 +19,7 @@ import Employees from "./pages/Employees";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AssetsInspectionReports from "./pages/AssetsInspectionReports";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/employee" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/install" element={<Install />} />
             
             <Route path="/employee" element={
               <ProtectedRoute allowedRoles={['EMPLOYEE']}>

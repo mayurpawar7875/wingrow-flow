@@ -15,13 +15,45 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'Wingrow Inventory',
         short_name: 'Wingrow',
+        description: 'Inventory management system for Wingrow Markets',
         theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/',
+        orientation: 'portrait',
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+          { 
+            src: '/icon-192.png', 
+            sizes: '192x192', 
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          { 
+            src: '/icon-512.png', 
+            sizes: '512x512', 
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 7
+              }
+            }
+          }
         ]
       }
     })
